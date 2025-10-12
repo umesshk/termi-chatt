@@ -2,6 +2,8 @@ package main
 
 import (
 	"fmt"
+
+	"github.com/umeshhk/termi-chatt/server"
 )
 
 func main() {
@@ -18,4 +20,5 @@ func main() {
 
 	fmt.Println(options[input-1])
 
+	server.CreateServer()
 }
