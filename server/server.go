@@ -1,29 +1,21 @@
 package server
 
 import (
+	"fmt"
 	"log"
-	"net"
+	"net/http"
 )
 
-
-func handleConnection(conn net.Conn){
-		log.Printf("handle func")
+func Handlehttp(w http.ResponseWriter, r *http.Request) {
+	fmt.Fprint(w, "Hello from the server ")
 }
 
-func CreateServer(){
-	ln, err := net.Listen("tcp", ":8080")
-	log.Printf("Listening of port 8080")
-	if err!=nil {
-		log.Fatal("An Error Occured starting server")
-	}
+func StartServer() {
+	http.HandleFunc("/", Handlehttp)
+	log.Println("Server is running at port :8080")
+	err := http.ListenAndServe(":8080", nil)
 
-	for {
-		conn, err := ln.Accept()
-		if err!=nil{
-				log.Fatal("Couldn't Connect")
-		}
-
-		go handleConnection(conn)
+	if err != nil {
+		log.Println("An Error Occured starting server")
 	}
-	
 }
