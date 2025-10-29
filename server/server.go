@@ -7,53 +7,43 @@ import (
 	"github.com/gorilla/websocket"
 )
 
+
 var upgrader = websocket.Upgrader{
-		ReadBufferSize: 1024,
-		WriteBufferSize: 1024,
+		ReadBufferSize: 1024, 
+		WriteBufferSize: 1024, 
+} 
 
-		CheckOrigin: func(r *http.Request) bool {return true},
-
+func http_Hanlder(w http.ResponseWriter, r* http.Request){
+		fmt.Fprintf(w,"Hello from server")
 }
 
+func WS_Handler(w http.ResponseWriter,r *http.Request){
+			conn,err := upgrader.Upgrade(w,r,nil)
+	
+			if err!=nil {
+			log.Fatal("Error Occured Upgrading to ws"); 
+	    }
 
-func Handlehttp(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprint(w, "Hello from the server ")
+			defer conn.Close()
+
+			messageType, p, err := conn.ReadMessage()
+			
+			if err != nil {
+			log.Fatal("Error reading message")
+			return 
+			}
+			
+			log.Printf("Message Recived from client : %s ", p )
+
+			if err := conn.WriteMessage(messageType,p); err!=nil{
+				log.Fatal("Error occured Writing Message"); 
+			}
 }
 
-func Ws_Handler(w http.ResponseWriter, r* http.Request){
-	 conn, err := upgrader.Upgrade(w,r,nil)
+func StartServer(){
+	http.HandleFunc("/", http_Hanlder);
+	http.HandleFunc("/ws",WS_Handler); 
+	log.Println("Server running on port : 8080")
 
-	 if err!=nil {
-		log.Println("Error Upgrading to Websockets ")
-	 }
-
-	defer conn.Close()
-
-	for {
-		messageType, p, err := conn.ReadMessage()
-
-		if err != nil {
-			log.Fatal("Error Reading message from %s", r.RemoteAddr)
-		}
-
-		log.Println("Message Recived from the client : ")
-		fmt.Println(string(p))
-
-		if err := conn.WriteMessage(messageType, p ); err!=nil {
-			log.Fatal("Error Writing message")
-		}else {
-			log.Println("Message Writeen Succesfully ")
-		}		
-	}
-}
-
-func StartServer() {
-	http.HandleFunc("/", Handlehttp)
-	http.HandleFunc("/ws",Ws_Handler)
-	log.Println("Server is running at port :8080")
-	err := http.ListenAndServe(":8080", nil)
-
-	if err != nil {
-		log.Println("An Error Occured starting server")
-	}
+	http.ListenAndServe(":8080",nil) ;
 }
