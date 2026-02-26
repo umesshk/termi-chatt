@@ -13,7 +13,7 @@ func StartServer(){
 		Handler: nil, 
 	}
 
-	log.Printf("Server Running on  %v", PORT)
+	log.Printf("Starting Server on  %v\n", PORT)
 	
 	err := server.ListenAndServe()
 
