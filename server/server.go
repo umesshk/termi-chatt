@@ -12,7 +12,7 @@ func HomeHandler(w http.ResponseWriter,r *http.Request){
 		log.Fatal(err)
 		return
 	}
-	log.Fatal("%v Bytes of Data written Succesfully ",bytes)
+	log.Printf("%v Bytes of Data written Succesfully ",bytes)
 } 
 
 
@@ -23,12 +23,13 @@ func StartServer(){
 
 	log.Printf("Starting Server on  %v\n", PORT)
 	
+	http.HandleFunc("/hello",HomeHandler)
 	err := http.ListenAndServe(PORT,nil)
 
 	if err!=nil {
 		log.Fatal(err)
 	}
 
-	http.HandleFunc("/hello",HomeHandler)
+
 
 }
