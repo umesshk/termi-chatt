@@ -4,6 +4,9 @@ import (
 	"github.com/gorilla/websocket"
 	"log"
 	"net/http"
+	"fmt"
+	"strconv"
+	"strings"
 )
 
 var upgrader = websocket.Upgrader{
@@ -11,9 +14,13 @@ var upgrader = websocket.Upgrader{
 	WriteBufferSize: 1024,
 }
 
+var roomId int = 0
+
+var room_map = make(map[int]*websocket.Conn)
+
+
 func HomeHandler(w http.ResponseWriter, r *http.Request) {
 	conn, err := upgrader.Upgrade(w, r, nil)
-
 	defer conn.Close()
 
 	if err != nil {
@@ -29,28 +36,58 @@ func HomeHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		ClientMessage := string(p)
+		ClientMessage := strings.TrimSpace(string(p))
 
-		log.Printf("%v", ClientMessage)
 
-		if ClientMessage == "pong" {
+		if ClientMessage == "create" {
+			roomId++
+			room_map[roomId] = conn	
+		
+			message := fmt.Sprintf("Room Created with Id : %d",roomId)
 
-			if err := conn.WriteMessage(messageType, []byte("ping")); err != nil {
-				log.Println(err)
-				return
-			}
+			if err := conn.WriteMessage(messageType,[]byte(message)); err!=nil {
+				log.Fatal(err)
+				return 
+			} 
+
+			log.Printf("User %v Created room %v " , conn.RemoteAddr(), roomId)
 
 		} else {
-			if err := conn.WriteMessage(messageType, []byte("pong")); err != nil {
-				log.Println(err)
-				return
+
+			roomIdString:= ClientMessage
+
+			if err != nil{
+				log.Fatal(err)
+				return 
 			}
+			room_id,err := strconv.Atoi(roomIdString)
+			
+			if err != nil{
+				log.Fatal(err)
+				return 
+			}
+			
+			value , ok := room_map[room_id]	
+				if !ok {
+					if err := conn.WriteMessage(messageType,[]byte("Room doesn't exist")); err != nil {
+						log.Fatal(err)
+						return 
+					}
+				}else {
+					fmt.Println(value)
+					if err := conn.WriteMessage(messageType,[]byte("Room Joined ")); err != nil {
+					log.Fatal(err)
+					return 
+					}
+				}
+			}
+
+			
 
 		}
 
 	}
 
-}
 
 func StartServer() {
 
