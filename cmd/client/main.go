@@ -3,7 +3,6 @@ package main
 import (
 	"fmt"
 	"os"
-	"github.com/umeshhk/termi-chatt/server"
 )
 
 func CreateRoom(){
@@ -17,6 +16,9 @@ func JoinRoom(){
 func main() {
 	options := []string{" Create Room ", " Join Room ", " Exit "}
 	
+ Chances := 3 	
+ 
+for (Chances>0){
 	
 	for i ,option := range options {
 		fmt.Printf(" [ %d ] %s \n", i+1, option)
@@ -40,6 +42,10 @@ func main() {
 		os.Exit(0)
 
 	default  : 
-		fmt.Println("Invalid Choice ")
+		fmt.Println("Invalid Choice... ")
+		Chances--
+		fmt.Printf("Remaning Tries %v\n", Chances)
+		
+}
 }
 }

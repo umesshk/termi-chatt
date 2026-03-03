@@ -89,7 +89,7 @@ func HomeHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 
-func StartServer() {
+func main() {
 
 	PORT := ":8080"
 
