@@ -1,4 +1,4 @@
-package server
+package main
 
 import (
 	"github.com/gorilla/websocket"
@@ -16,10 +16,17 @@ var upgrader = websocket.Upgrader{
 
 var roomId int = 0
 
-var room_map = make(map[int]*websocket.Conn)
+var room_map = make(map[int][]*websocket.Conn)
+var conn_map = make(map[*websocket.Conn]int)
 
+type UserMessage struct {
+ Msgtype 		string `json:"type"` 
+ Message		string  `json:"message"`
+ RoomId   	int			`json:"roomid"`
+}
 
-func HomeHandler(w http.ResponseWriter, r *http.Request) {
+func MainHanlder(w http.ResponseWriter, r *http.Request) {
+
 	conn, err := upgrader.Upgrade(w, r, nil)
 	defer conn.Close()
 
@@ -41,8 +48,9 @@ func HomeHandler(w http.ResponseWriter, r *http.Request) {
 
 		if ClientMessage == "create" {
 			roomId++
-			room_map[roomId] = conn	
-		
+			room_map[roomId] = append(room_map[roomId], conn)	
+	    conn_map[conn] = roomId	
+
 			message := fmt.Sprintf("Room Created with Id : %d",roomId)
 
 			if err := conn.WriteMessage(messageType,[]byte(message)); err!=nil {
@@ -50,9 +58,10 @@ func HomeHandler(w http.ResponseWriter, r *http.Request) {
 				return 
 			} 
 
-			log.Printf("User %v Created room %v " , conn.RemoteAddr(), roomId)
+			log.Printf("User %v Created room %v \n" , conn.RemoteAddr(), roomId)
 
-		} else {
+		} 
+		if ClientMessage == "join" {
 
 			roomIdString:= ClientMessage
 
@@ -67,14 +76,13 @@ func HomeHandler(w http.ResponseWriter, r *http.Request) {
 				return 
 			}
 			
-			value , ok := room_map[room_id]	
+			room_Conn , ok := room_map[room_id]	
 				if !ok {
 					if err := conn.WriteMessage(messageType,[]byte("Room doesn't exist")); err != nil {
 						log.Fatal(err)
 						return 
 					}
 				}else {
-					fmt.Println(value)
 					if err := conn.WriteMessage(messageType,[]byte("Room Joined ")); err != nil {
 					log.Fatal(err)
 					return 
@@ -95,7 +103,7 @@ func main() {
 
 	log.Printf("Starting Server on  %v\n", PORT)
 
-	http.HandleFunc("/ws", HomeHandler)
+	http.HandleFunc("/ws", MainHanlder)
 	err := http.ListenAndServe(PORT, nil)
 
 	if err != nil {
