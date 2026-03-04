@@ -15,7 +15,9 @@ var upgrader = websocket.Upgrader{
 
 var roomId int = 0
 
+//  roomid -> websocket connection slice
 var room_map = make(map[int][]*websocket.Conn)
+// websocket connection -> room id 
 var conn_map = make(map[*websocket.Conn]int)
 
 type UserMessage struct {
@@ -45,7 +47,7 @@ func MainHanlder(w http.ResponseWriter, r *http.Request) {
 	var ClientMessage UserMessage 
  
 	if err := json.Unmarshal(p,&ClientMessage); err != nil{
-			log.Println(err)
+			log.Println("Error During Parsing " , err)
 			continue	
 	} 
 		switch ClientMessage.Msgtype {
@@ -71,7 +73,8 @@ func MainHanlder(w http.ResponseWriter, r *http.Request) {
 					log.Fatal(err)
 					return 
 				}		
-			
+		   
+				log.Println("Client Room Id ", room_id)
 				_, ok := room_map[room_id]	
 					if !ok {
 						if err := conn.WriteMessage(messageType,[]byte("Room doesn't exist")); err != nil {
@@ -88,8 +91,45 @@ func MainHanlder(w http.ResponseWriter, r *http.Request) {
 						}
 						log.Printf("User Joined Room %v\n", room_id)
 					}
-	    case "message": 
-			
+	    case "message":
+			 
+				room_id := ClientMessage.RoomId
+				
+				if room_id == 0 {
+					log.Println("No RoomId Provided ")
+					if err := conn.WriteMessage(messageType,[]byte("Room Id is Required  ")) ; err != nil {
+					log.Println(err)
+					continue
+				}
+			}
+			  join_room_id , ok := conn_map[conn]
+
+				if !ok {
+					fmt.Println("Connection not Found ")
+					if err := conn.WriteMessage(messageType,[]byte("Please Join the room first   ")) ; err != nil {
+					log.Println(err)
+					continue
+				}
+
+			}else {
+				if join_room_id != room_id {
+					fmt.Println("Wrong Room")
+						if err := conn.WriteMessage(messageType,[]byte("Please Join the room first ")) ; err != nil {
+						log.Println(err)
+						continue
+						}	
+				}
+ 				 current_room := room_map[join_room_id]
+				
+			 	 sender_message := ClientMessage.Message
+				 log.Printf("Sender Message %v\n", sender_message)
+				 for receiver_conn ,i := range current_room {
+					 log.Printf("Message Written to User %v, %v\n",i, receiver_conn)
+
+				 }
+
+			}
+
 			default : 
 				if err := conn.WriteMessage(messageType,[]byte("Invalid Input ")) ; err != nil {
 					log.Println(err)
