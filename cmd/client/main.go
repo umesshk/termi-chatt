@@ -15,19 +15,33 @@ _	"encoding/json"
  RoomId   	int			`json:"roomId,omitempty"`
 }
 
-func CreateConnection(){
+func CreateConnection() (*websocket.Conn ,  error)  {
 	
 		conn , _ ,  err := websocket.DefaultDialer.Dial("ws://localhost:8080/ws", nil)
 
 		if err != nil {
-			fmt.Println("Error Creating Connection ",err)
-			return 
+			return nil, err  
 		}
 		
 		log.Println(" Connected to Server ")
 
- 
-			if err := conn.WriteJSON(UserMessage{Msgtype: "create",Message: " Hello There", RoomId : 1}); 
+   return conn,nil 
+
+		
+
+}
+
+
+func CreateRoom(){
+	fmt.Println("Room Created")
+
+	conn , err := CreateConnection() 
+
+    if err != nil {
+			fmt.Println("Error Creating Connection ",err)
+		}
+
+	if err := conn.WriteJSON(UserMessage{Msgtype: "create"}); 
  err != nil {
 			log.Println("Error Occured", err)
 			
@@ -39,24 +53,17 @@ func CreateConnection(){
 			if err != nil {
 				fmt.Println(err)
 			}
-			fmt.Printf("User Message %v", string(p))
+			fmt.Println(string(p))
 		}
 
+}
 
-		defer conn.Close()
-		
+func JoinRoom(roomId int ){
+	
+
 
 }
 
-
-func CreateRoom(){
-	fmt.Println("Room Created")
-	CreateConnection()
-}
-
-func JoinRoom(){
-	fmt.Println("Room Joined")
-}
 
 func main() {
 	options := []string{" Create Room ", " Join Room ", " Exit "}
@@ -80,7 +87,10 @@ for (Chances>0){
  	
 	case 2: 
 		fmt.Println("Joining Room ")
- 		JoinRoom()
+		fmt.Printf("Enter Room Id to join: ")
+		var roomId int 
+		fmt.Scanln(&roomId)
+ 		JoinRoom(roomId)
 	 
 	case 3:
 		fmt.Println("Exiting Program...")
