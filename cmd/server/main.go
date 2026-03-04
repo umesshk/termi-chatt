@@ -123,9 +123,11 @@ func MainHanlder(w http.ResponseWriter, r *http.Request) {
 			 	 sender_message := ClientMessage.Message
 				 log.Printf("Sender Message %v\n", sender_message)
 				 for i,receiver_conn := range current_room {
+					 if conn != receiver_conn{
 					 if err := receiver_conn.WriteMessage(messageType, []byte(sender_message)); err != nil {
 						log.Println("Error Sending Message ")
 					 } 
+				 }
 					 log.Printf("Message Written to User %v \n",i)
 
 				 }
