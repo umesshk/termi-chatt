@@ -78,17 +78,26 @@ func MainHanlder(w http.ResponseWriter, r *http.Request) {
 				_, ok := room_map[room_id]	
 					if !ok {
 						if err := conn.WriteMessage(messageType,[]byte("Room doesn't exist")); err != nil {
-							log.Fatal(err)
+							fmt.Println(err)
 							continue
 						}
 
 					}else {
+					   	conn_room , ok := conn_map[conn]
+
+							if ok && conn_room == room_id{
+								if err := conn.WriteMessage(messageType,[]byte("Already in  the room... ")); err != nil {
+									log.Printf("User Already in Room ")
+								} 
+
+						}else {
 						room_map[room_id] = append(room_map[room_id], conn)
 	    			conn_map[conn] = room_id
 						if err := conn.WriteMessage(messageType,[]byte("Room Joined ")); err != nil {
 						log.Fatal(err)
 				  	continue 	
 						}
+					}
 						log.Printf("User Joined Room %v\n", room_id)
 					}
 	    case "message":
@@ -124,7 +133,8 @@ func MainHanlder(w http.ResponseWriter, r *http.Request) {
 				 log.Printf("Sender Message %v\n", sender_message)
 				 for i,receiver_conn := range current_room {
 					 if conn != receiver_conn{
-					 if err := receiver_conn.WriteMessage(messageType, []byte(sender_message)); err != nil {
+				 		message_to_send := fmt.Sprintf("User %v : %v ",i,sender_message)
+					 if err := receiver_conn.WriteMessage(messageType, []byte(message_to_send)); err != nil {
 						log.Println("Error Sending Message ")
 					 } 
 				 }
