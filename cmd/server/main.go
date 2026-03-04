@@ -120,11 +120,13 @@ func MainHanlder(w http.ResponseWriter, r *http.Request) {
 						}	
 				}
  				 current_room := room_map[join_room_id]
-				
 			 	 sender_message := ClientMessage.Message
 				 log.Printf("Sender Message %v\n", sender_message)
-				 for receiver_conn ,i := range current_room {
-					 log.Printf("Message Written to User %v, %v\n",i, receiver_conn)
+				 for i,receiver_conn := range current_room {
+					 if err := receiver_conn.WriteMessage(messageType, []byte(sender_message)); err != nil {
+						log.Println("Error Sending Message ")
+					 } 
+					 log.Printf("Message Written to User %v \n",i)
 
 				 }
 
