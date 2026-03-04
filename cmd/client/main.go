@@ -1,12 +1,57 @@
 package main
 
 import (
+	"github.com/gorilla/websocket"
 	"fmt"
 	"os"
+	"log"
+_	"encoding/json"
 )
+
+
+ type UserMessage struct {
+ Msgtype 		string  `json:"type"` 
+ Message		string  `json:"message,omitempty"` 
+ RoomId   	int			`json:"roomId,omitempty"`
+}
+
+func CreateConnection(){
+	
+		conn , _ ,  err := websocket.DefaultDialer.Dial("ws://localhost:8080/ws", nil)
+
+		if err != nil {
+			fmt.Println("Error Creating Connection ",err)
+			return 
+		}
+		
+		log.Println(" Connected to Server ")
+
+ 
+			if err := conn.WriteJSON(UserMessage{Msgtype: "create",Message: " Hello There", RoomId : 1}); 
+ err != nil {
+			log.Println("Error Occured", err)
+			
+			}
+			
+			for {
+			_ ,p,err := conn.ReadMessage()
+			
+			if err != nil {
+				fmt.Println(err)
+			}
+			fmt.Printf("User Message %v", string(p))
+		}
+
+
+		defer conn.Close()
+		
+
+}
+
 
 func CreateRoom(){
 	fmt.Println("Room Created")
+	CreateConnection()
 }
 
 func JoinRoom(){
