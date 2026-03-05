@@ -72,14 +72,14 @@ func MainHanlder(w http.ResponseWriter, r *http.Request) {
 
 	    	conn_map[conn] = roomId	
 
-				message := fmt.Sprintf("User %v Created Room ",user_name,roomId)
+				message := fmt.Sprintf("User %v Created Room %v",user_name,roomId)
 
 				if err := conn.WriteMessage(messageType,[]byte(message)); err!=nil {
 					log.Println(err)
 					continue 
 				}	 
 
-				log.Printf("User  Username : %v  Created room %v \n" ,  user_name, roomId)
+				log.Printf("User  Username : %v  Created room %v\n" ,  user_name, roomId)
 	
 			case "join" :  
 			

@@ -48,13 +48,39 @@ func CreateRoom(){
 			
 			}
 			
-			for {
-			_ ,p,err := conn.ReadMessage()
+ 			
+			go func (){
+				
+				for {
 			
-			if err != nil {
-				fmt.Println(err)
+					_,p,err := conn.ReadMessage()
+
+					if err != nil {
+						log.Println(err)
+						continue
+					}
+			
+					fmt.Printf("\n%s\n",string(p))
+
+				}
+			}()
+
+
+			for {
+			
+			var user_message string 
+			fmt.Printf("Enter Message : ")
+			fmt.Scanln(&user_message)
+
+			if user_message != ""{
+				
+			 if err := conn.WriteJSON(UserMessage{Msgtype:"message",Username:user_name,Message:user_message,RoomId:1}); err != nil {
+					log.Println(err)
+					continue
+				}
+
 			}
-			fmt.Println(string(p))
+
 		}
 
 }
