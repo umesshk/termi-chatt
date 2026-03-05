@@ -13,6 +13,7 @@ _	"encoding/json"
  Msgtype 		string  `json:"type"` 
  Message		string  `json:"message,omitempty"` 
  RoomId   	int			`json:"roomId,omitempty"`
+ Username 	string 	`json:"username"`
 }
 
 func CreateConnection() (*websocket.Conn ,  error)  {
@@ -33,7 +34,7 @@ func CreateConnection() (*websocket.Conn ,  error)  {
 
 
 func CreateRoom(){
-	fmt.Println("Room Created")
+  user_name := "Makito"
 
 	conn , err := CreateConnection() 
 
@@ -41,7 +42,7 @@ func CreateRoom(){
 			fmt.Println("Error Creating Connection ",err)
 		}
 
-	if err := conn.WriteJSON(UserMessage{Msgtype: "create"}); 
+		if err := conn.WriteJSON(UserMessage{Msgtype: "create",Username:user_name}); 
  err != nil {
 			log.Println("Error Occured", err)
 			

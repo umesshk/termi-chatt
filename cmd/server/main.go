@@ -13,18 +13,27 @@ var upgrader = websocket.Upgrader{
 	WriteBufferSize: 1024,
 }
 
-var roomId int = 0
-
-//  roomid -> websocket connection slice
-var room_map = make(map[int][]*websocket.Conn)
-// websocket connection -> room id 
-var conn_map = make(map[*websocket.Conn]int)
 
 type UserMessage struct {
  Msgtype 		string  `json:"type"` 
  Message		string  `json:"message,omitempty"` 
  RoomId   	int			`json:"roomId,omitempty"`
+ Username 		string 					`json:"username"`
 }
+
+type User struct {
+	UserId   		int 						`json:"userId"`
+	Username 		string 					`json:"username"`
+  User_conn 				*websocket.Conn `json:"conn,omitempty"`
+}
+
+var roomId int = 0
+var userId int = 0 
+//  roomid -> websocket connection slice
+var room_map = make(map[int][]User)
+// websocket connection -> room id 
+var conn_map = make(map[*websocket.Conn]int)
+
 
 func MainHanlder(w http.ResponseWriter, r *http.Request) {
 
@@ -48,26 +57,36 @@ func MainHanlder(w http.ResponseWriter, r *http.Request) {
  
 	if err := json.Unmarshal(p,&ClientMessage); err != nil{
 			log.Println("Error During Parsing " , err)
+			
 			continue	
 	} 
 		switch ClientMessage.Msgtype {
 		case "create" :
 				roomId++
-				room_map[roomId] = append(room_map[roomId], conn)	
+				userId++
+				user_name := ClientMessage.Username
+				user := User{userId,user_name,conn}
+
+				room_map[roomId] = append(room_map[roomId], user)	
+				userId++
+
 	    	conn_map[conn] = roomId	
 
-				message := fmt.Sprintf("Room Created with Id : %d",roomId)
+				message := fmt.Sprintf("User %v Created Room ",user_name,roomId)
 
 				if err := conn.WriteMessage(messageType,[]byte(message)); err!=nil {
 					log.Println(err)
 					continue 
 				}	 
 
-				log.Printf("User %v Created room %v \n" , conn.RemoteAddr(), roomId)
+				log.Printf("User  Username : %v  Created room %v \n" ,  user_name, roomId)
 	
 			case "join" :  
 			
-				room_id := ClientMessage.RoomId
+				room_id   := ClientMessage.RoomId
+				user_name := ClientMessage.Username
+				userId++ 
+				user := User{userId, user_name, conn}
 
 				if err != nil{
 					log.Fatal(err)
@@ -83,27 +102,28 @@ func MainHanlder(w http.ResponseWriter, r *http.Request) {
 						}
 
 					}else {
-					   	conn_room , ok := conn_map[conn]
+					   	conn_room_id , ok := conn_map[conn]
 
-							if ok && conn_room == room_id{
+							if ok && conn_room_id == room_id {
 								if err := conn.WriteMessage(messageType,[]byte("Already in  the room... ")); err != nil {
 									log.Printf("User Already in Room ")
 								} 
 
 						}else {
-						room_map[room_id] = append(room_map[room_id], conn)
+						room_map[room_id] = append(room_map[room_id], user)
 	    			conn_map[conn] = room_id
-						if err := conn.WriteMessage(messageType,[]byte("Room Joined ")); err != nil {
+						message := fmt.Sprintf("%v  Joined room : %v", user_name,room_id)
+						if err := conn.WriteMessage(messageType,[]byte(message)); err != nil {
 						log.Fatal(err)
 				  	continue 	
 						}
+					log.Printf(" %v Joined Room %v\n",user_name, room_id)
 					}
-						log.Printf("User Joined Room %v\n", room_id)
 					}
 	    case "message":
 			 
 				room_id := ClientMessage.RoomId
-				
+			  sender_name := ClientMessage.Username	
 				if room_id == 0 {
 					log.Println("No RoomId Provided ")
 					if err := conn.WriteMessage(messageType,[]byte("Room Id is Required  ")) ; err != nil {
@@ -111,11 +131,14 @@ func MainHanlder(w http.ResponseWriter, r *http.Request) {
 					continue
 				}
 			}
-			  join_room_id , ok := conn_map[conn]
+
+				
+
+				join_room_id , ok := conn_map[conn]
 
 				if !ok {
 					fmt.Println("Connection not Found ")
-					if err := conn.WriteMessage(messageType,[]byte("Please Join the room first   ")) ; err != nil {
+					if err := conn.WriteMessage(messageType,[]byte("Please Join the room first ")) ; err != nil {
 					log.Println(err)
 					continue
 				}
@@ -131,14 +154,21 @@ func MainHanlder(w http.ResponseWriter, r *http.Request) {
  				 current_room := room_map[join_room_id]
 			 	 sender_message := ClientMessage.Message
 				 log.Printf("Sender Message %v\n", sender_message)
-				 for i,receiver_conn := range current_room {
+
+
+				 for _,receiver:= range current_room {
+					 receiver_name := receiver.Username
+					 receiver_conn := receiver.User_conn
 					 if conn != receiver_conn{
-				 		message_to_send := fmt.Sprintf("User %v : %v ",i,sender_message)
+				 		message_to_send := fmt.Sprintf(" %v : %v ",sender_name,sender_message)
 					 if err := receiver_conn.WriteMessage(messageType, []byte(message_to_send)); err != nil {
 						log.Println("Error Sending Message ")
+						continue
 					 } 
+				 log.Printf("Message Written to User's :  %v \n",receiver_name)
 				 }
-					 log.Printf("Message Written to User %v \n",i)
+				 
+
 
 				 }
 
