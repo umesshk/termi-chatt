@@ -33,23 +33,8 @@ func CreateConnection() (*websocket.Conn ,  error)  {
 }
 
 
-func CreateRoom(){
-  user_name := "Makito"
-
-	conn , err := CreateConnection() 
-
-    if err != nil {
-			fmt.Println("Error Creating Connection ",err)
-		}
-
-		if err := conn.WriteJSON(UserMessage{Msgtype: "create",Username:user_name}); 
- err != nil {
-			log.Println("Error Occured", err)
-			
-			}
-			
- 			
-			go func (){
+ var serverResponse = make(chan bool )
+func GetServerMessage (conn *websocket.Conn){
 				
 				for {
 			
@@ -62,9 +47,32 @@ func CreateRoom(){
 			
 					fmt.Printf("\n%s\n",string(p))
 
-				}
-			}()
+					serverResponse <- true
 
+				}
+}
+
+
+
+func CreateRoom(){
+  user_name := "Makito"
+
+	conn , err := CreateConnection() 
+
+    if err != nil {
+			fmt.Println("Error Creating Connection ",err)
+		}
+
+			go GetServerMessage(conn) 
+
+		if err := conn.WriteJSON(UserMessage{Msgtype: "create",Username:user_name}); 
+ err != nil {
+			log.Println("Error Occured", err)
+			
+			}
+			
+		
+ 		 <-serverResponse	
 
 			for {
 			
