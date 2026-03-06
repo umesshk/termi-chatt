@@ -55,7 +55,9 @@ func GetServerMessage (conn *websocket.Conn){
 
 
 func CreateRoom(){
-  user_name := "Makito"
+  var user_name string
+	fmt.Printf("Enter your Username: ") 
+	fmt.Scanln(&user_name)
 
 	conn , err := CreateConnection() 
 
@@ -113,7 +115,7 @@ func JoinRoom(){
  
 			go GetServerMessage(conn) 
 
-			if err := conn.WriteJSON(UserMessage{Msgtype: "join",RoomId: 1 , Username:user_name}); 
+			if err := conn.WriteJSON(UserMessage{Msgtype: "join",RoomId: roomId , Username:user_name}); 
  err != nil {
 			log.Println("Error Occured", err)
 			

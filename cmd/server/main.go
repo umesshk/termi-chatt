@@ -49,7 +49,7 @@ func MainHanlder(w http.ResponseWriter, r *http.Request) {
 		messageType, p, err := conn.ReadMessage()
 
 		if err != nil {
-			log.Fatal(err)
+			log.Println(err)
 			continue
 		}
 
@@ -88,10 +88,6 @@ func MainHanlder(w http.ResponseWriter, r *http.Request) {
 				userId++ 
 				user := User{userId, user_name, conn}
 
-				if err != nil{
-					log.Fatal(err)
-					return 
-				}		
 		   
 				log.Println("Client Room Id ", room_id)
 				_, ok := room_map[room_id]	
@@ -102,6 +98,7 @@ func MainHanlder(w http.ResponseWriter, r *http.Request) {
 						}
 
 					}else {
+
 					   	conn_room_id , ok := conn_map[conn]
 
 							if ok && conn_room_id == room_id {
@@ -113,14 +110,31 @@ func MainHanlder(w http.ResponseWriter, r *http.Request) {
 						room_map[room_id] = append(room_map[room_id], user)
 	    			conn_map[conn] = room_id
 						message := fmt.Sprintf("%v  Joined room : %v", user_name,room_id)
+
+						room_conn := room_map[room_id]
+					
+
+					for _,receiver:= range room_conn {
+							 receiver_name := receiver.Username
+						 	 receiver_conn := receiver.User_conn
+					 			
+					 		if err := receiver_conn.WriteMessage(messageType, []byte(message)); err != nil {
+										log.Println("Error Sending Message ")
+							continue
+					 } 
+						 log.Printf("Message Written to User's :  %v \n",receiver_name)
+				 
+				 
 						if err := conn.WriteMessage(messageType,[]byte(message)); err != nil {
-						log.Fatal(err)
+						log.Println(err)
 				  	continue 	
 						}
 					log.Printf(" %v Joined Room %v\n",user_name, room_id)
 					}
 					}
-	    case "message":
+				}
+	    
+		case "message":
 			 
 				room_id := ClientMessage.RoomId
 			  sender_name := ClientMessage.Username	
@@ -153,20 +167,20 @@ func MainHanlder(w http.ResponseWriter, r *http.Request) {
 				}
  				 current_room := room_map[join_room_id]
 			 	 sender_message := ClientMessage.Message
+
 				 log.Printf("Sender Message %v\n", sender_message)
 
-
+									
 				 for _,receiver:= range current_room {
 					 receiver_name := receiver.Username
 					 receiver_conn := receiver.User_conn
-					 if conn != receiver_conn{
+					 fmt.Println("Writing Message to all user ")
 				 		message_to_send := fmt.Sprintf(" %v : %v ",sender_name,sender_message)
 					 if err := receiver_conn.WriteMessage(messageType, []byte(message_to_send)); err != nil {
-						log.Println("Error Sending Message ")
+						log.Println("Error Sending Message ",err)
 						continue
-					 } 
-				 log.Printf("Message Written to User's :  %v \n",receiver_name)
 				 }
+				 log.Printf("Message Written to User's :  %v \n",receiver_name)
 				 
 
 
