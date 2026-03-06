@@ -93,9 +93,53 @@ func CreateRoom(){
 
 }
 
-func JoinRoom(roomId int ){
-	
+func JoinRoom(){
 
+	var user_name string  
+	fmt.Printf("Enter Your User Name : ")
+	fmt.Scanln(&user_name)
+	
+	var roomId int
+	fmt.Printf("Enter Room Id: ")
+	fmt.Scanln(&roomId)
+
+
+ conn, err := CreateConnection()
+
+ 			if err != nil {
+			fmt.Println(err)
+			return 
+			}
+ 
+			go GetServerMessage(conn) 
+
+			if err := conn.WriteJSON(UserMessage{Msgtype: "join",RoomId: 1 , Username:user_name}); 
+ err != nil {
+			log.Println("Error Occured", err)
+			
+			}
+			
+		
+ 		 <-serverResponse	
+
+			for {
+			
+			var user_message string 
+			fmt.Printf("Enter Message : ")
+			fmt.Scanln(&user_message)
+
+			if user_message != ""{
+				
+			 if err := conn.WriteJSON(UserMessage{Msgtype:"message",Username:user_name,Message:user_message,RoomId:1}); err != nil {
+					log.Println(err)
+					continue
+				}
+
+			}
+
+		}
+
+ 
 
 }
 
@@ -122,10 +166,7 @@ for (Chances>0){
  	
 	case 2: 
 		fmt.Println("Joining Room ")
-		fmt.Printf("Enter Room Id to join: ")
-		var roomId int 
-		fmt.Scanln(&roomId)
- 		JoinRoom(roomId)
+ 		JoinRoom()
 	 
 	case 3:
 		fmt.Println("Exiting Program...")
