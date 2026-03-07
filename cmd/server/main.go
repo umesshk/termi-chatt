@@ -117,21 +117,13 @@ func MainHanlder(w http.ResponseWriter, r *http.Request) {
 						message := fmt.Sprintf("%v  Joined room : %v", user_name,room_id)
 
 					for _,receiver:= range room_conn {
-							 receiver_name := receiver.Username
 						 	 receiver_conn := receiver.User_conn
 					 			
 					 		if err := receiver_conn.WriteMessage(messageType, []byte(message)); err != nil {
 										log.Println("Error Sending Message ")
 							continue
 					 } 
-						 log.Printf("Message Written to User's :  %v \n",receiver_name)
-				 
-				 
-						if err := conn.WriteMessage(messageType,[]byte(message)); err != nil {
-						log.Println(err)
-				  	continue 	
-						}
-					log.Printf(" %v Joined Room %v\n",user_name, room_id)
+				 		log.Printf(" %v Joined Room %v\n",user_name, room_id)
 					}
 					}
 				}
@@ -144,8 +136,8 @@ func MainHanlder(w http.ResponseWriter, r *http.Request) {
 					log.Println("No RoomId Provided ")
 					if err := conn.WriteMessage(messageType,[]byte("Room Id is Required  ")) ; err != nil {
 					log.Println(err)
-					continue
 				}
+					continue
 			}
 
 				
