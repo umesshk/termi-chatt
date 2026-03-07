@@ -143,6 +143,7 @@ for {
 		
 		if msg == "/exit"{
 			fmt.Println("Exiting....")
+			if err := conn.WriteJSON(UserMessage{Msgtype:"leave",Username:user_name,RoomId:room_id}); err != nil {
 			os.Exit(0)
 		}
 		conn.WriteJSON(UserMessage{

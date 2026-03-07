@@ -167,7 +167,7 @@ func MainHanlder(w http.ResponseWriter, r *http.Request) {
 
 				
 
-				join_room_id , ok := conn_map[conn]
+				joined_room_id , ok := conn_map[conn]
 
 				if !ok {
 					
@@ -183,7 +183,7 @@ func MainHanlder(w http.ResponseWriter, r *http.Request) {
 
 			}else {
 
-				if join_room_id != room_id {
+				if joined_room_id != room_id {
 					message := fmt.Sprintf("Wrong Room Id Provided : %v ",room_id)	
 							
 					server_response := ServerResponse{Type:"error",UserName:sender_name,Message:message,RoomId: room_id}
@@ -196,7 +196,7 @@ func MainHanlder(w http.ResponseWriter, r *http.Request) {
 			}
 
 
- 				 current_room := room_map[join_room_id]
+ 				 current_room := room_map[joined_room_id]
 			 	 sender_message := ClientMessage.Message
 
 				 log.Printf("Sender Message %v\n", sender_message)
@@ -222,8 +222,86 @@ func MainHanlder(w http.ResponseWriter, r *http.Request) {
 				 }
 
 			}
+		case "leave": 
+				room_id := ClientMessage.RoomId
+			  sender_name := ClientMessage.Username	
+			
+				
+				if room_id == 0 {
+						message := fmt.Sprintf("No Room Id provided... ")	
+							
+						server_response := ServerResponse{Type:"error",UserName:sender_name,Message:message,RoomId: room_id}
+						
+						conn.WriteJSON(server_response)
+					  
+						log.Println(message)
 
-			default : 
+						continue
+			
+				}
+
+				
+
+				joined_room_id , ok := conn_map[conn]
+
+				if !ok {
+					
+					message := fmt.Sprintf("Please Join the Room First : %v ",room_id)	
+							
+						server_response := ServerResponse{Type:"error",UserName:sender_name,Message:message,RoomId: room_id}
+						
+						conn.WriteJSON(server_response)
+					  
+						log.Println(message)
+
+						continue
+
+			}else {
+
+				if joined_room_id != room_id {
+					message := fmt.Sprintf("Wrong Room Id Provided : %v ",room_id)	
+							
+					server_response := ServerResponse{Type:"error",UserName:sender_name,Message:message,RoomId: room_id}
+						
+						conn.WriteJSON(server_response)
+					  
+						log.Println(message)
+
+						continue
+			}else {
+				users := room_map[joined_room_id]
+				
+				idx_to_delete := -1  
+				for i, user := range users {
+					if user.User_conn == conn {
+						idx_to_delete = i
+						break;
+					}
+				}
+			
+				if idx_to_delete != -1 {
+					users = append(users[:idx_to_delete], users[idx_to_delete+1:]...)
+				} 
+
+				room_map[joined_room_id] = users
+       
+				message := fmt.Sprintf("User %v left the room %v",sender_name,joined_room_id)
+
+				server_response := ServerResponse{Type:"leave",UserName:sender_name,Message:message,RoomId: room_id}
+
+				for _,user := range users {
+					user.User_conn.WriteJSON(server_response)
+				}
+
+				delete(conn_map,conn)
+
+				log.Printf("User %v left the room %v",sender_name,joined_room_id)
+
+
+			}
+
+		}
+		default : 
 				if err := conn.WriteMessage(messageType,[]byte("Invalid Input ")) ; err != nil {
 					log.Println(err)
 				}
