@@ -211,7 +211,7 @@ func MainHanlder(w http.ResponseWriter, r *http.Request) {
 					 
 				 	 message_to_send := fmt.Sprintf(" %v : %v ",sender_name,sender_message)
 					
-					 server_response := ServerResponse{Type:"message", UserName:sender_name,Message:message_to_send,RoomId:room_id }
+					 server_response := ServerResponse{Type:"chat_message", UserName:sender_name,Message:message_to_send,RoomId:room_id }
 						
 					 receiver_conn.WriteJSON(server_response)
 					 

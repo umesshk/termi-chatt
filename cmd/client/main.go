@@ -7,6 +7,7 @@ import (
 	"log"
 	"bufio"
 	"strings"
+	"encoding/json"
 )
 
 
@@ -16,6 +17,14 @@ import (
  RoomId   	int			`json:"roomId,omitempty"`
  Username 	string 	`json:"username"`
 }
+
+type ServerResponse struct {
+	Type   			string 	`json:"type"`
+	UserName 		string 	`json:"username"`
+	Message     string  `json:"message"`
+	RoomId			int 		`json:"roomId"`
+}
+
 
 func CreateConnection() (*websocket.Conn ,  error)  {
 	
@@ -50,16 +59,26 @@ func GetUserInput(userInput chan string ){
 
 }
 
-func GetServerResponse(conn *websocket.Conn, serverResponse chan string ){
+func GetServerResponse(conn *websocket.Conn, serverResponseChan chan ServerResponse){
 
 	for {
 	
-		_, p, err := conn.ReadMessage()
-	if err != nil {
+		_, res, err := conn.ReadMessage()
+	
+		if err != nil {
 		fmt.Println(err)
 		continue
-	}
-	serverResponse <- string(p)
+		}
+		
+		var server_response ServerResponse
+		
+		if err := json.Unmarshal(res,&server_response); err != nil {
+			fmt.Println(err)
+			continue
+		}
+		
+
+	serverResponseChan <- server_response
 		
 }
 }
@@ -109,10 +128,10 @@ func StartConnection(Type string){
  }
 
   userInput := make(chan string)
-	serverResponse := make(chan string)
+	serverResponseChan := make(chan ServerResponse)
 
 	go GetUserInput(userInput)
-	go GetServerResponse(conn,serverResponse)
+	go GetServerResponse(conn,serverResponseChan)
 
 for {
 	select {
@@ -131,9 +150,26 @@ for {
 				RoomId: room_id,
 				Message: msg,
 			})
-		case 	msg :=<- serverResponse: 
-				fmt.Printf("\r\033[k%s\n",msg)
-				fmt.Printf("Enter Message : ")
+		case 	msg :=<- serverResponseChan: 
+
+			switch msg.Type  {
+			
+					case "room_created" :
+							room_id = msg.RoomId	
+							fmt.Println(msg.Message)
+					case "room_joined": 
+							fmt.Println(msg.Message)
+				  case "error" : 
+							fmt.Println("Error Occured: ",msg.Message)
+					
+					case "chat_message": 	
+							fmt.Printf("\r\033[k%s\n",msg.Message)
+				
+					 default: 
+					 		fmt.Println("No Valid Response From Server")
+					}
+				
+							fmt.Printf("Enter Message : ")
 	
 		}
 	}
