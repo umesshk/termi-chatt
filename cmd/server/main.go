@@ -18,13 +18,20 @@ type UserMessage struct {
  Msgtype 		string  `json:"type"` 
  Message		string  `json:"message,omitempty"` 
  RoomId   	int			`json:"roomId,omitempty"`
- Username 		string 					`json:"username"`
+ Username 	string 					`json:"username"`
 }
 
 type User struct {
 	UserId   		int 						`json:"userId"`
 	Username 		string 					`json:"username"`
-  User_conn 				*websocket.Conn `json:"conn,omitempty"`
+  User_conn  *websocket.Conn `json:"conn,omitempty"`
+}
+
+type ServerResponse struct {
+	Type 			string 	`json:"type"`
+	UserName 	string 	`json:"username"`	
+	Message 	string 	`json:"message,omitempty"`
+	RoomId  	int 	 	`json:"roomId,omitempty"`
 }
 
 var roomId int = 0
@@ -61,25 +68,25 @@ func MainHanlder(w http.ResponseWriter, r *http.Request) {
 			continue	
 	} 
 		switch ClientMessage.Msgtype {
+
 		case "create" :
 				roomId++
 				userId++
+			
 				user_name := ClientMessage.Username
 				user := User{userId,user_name,conn}
 
 				room_map[roomId] = append(room_map[roomId], user)	
-				userId++
 
 	    	conn_map[conn] = roomId	
 
-				message := fmt.Sprintf("User %v Created Room %v",user_name,roomId)
+				message := fmt.Sprintf(" Created Room with Room Id :  %v",roomId)
 
-				if err := conn.WriteMessage(messageType,[]byte(message)); err!=nil {
-					log.Println(err)
-					continue 
-				}	 
+				server_response := ServerResponse{Type:"room_created", UserName:user_name, Message: message, RoomId: roomId}
+			
+				conn.WriteJSON(server_response)
 
-				log.Printf("User  Username : %v  Created room %v\n" ,  user_name, roomId)
+				log.Printf("%v  Created room %v\n" ,  user_name, roomId)
 	
 			case "join" :  
 			
@@ -87,26 +94,35 @@ func MainHanlder(w http.ResponseWriter, r *http.Request) {
 				user_name := ClientMessage.Username
 				userId++ 
 				user := User{userId, user_name, conn}
-
+				
 		   
 				log.Println("Client Room Id ", room_id)
+
 				_, ok := room_map[room_id]	
-					if !ok {
-						if err := conn.WriteMessage(messageType,[]byte("Room doesn't exist")); err != nil {
-							fmt.Println(err)
-							continue
-						}
+				
+				if !ok {
+
+					message := fmt.Sprintf("Room Doesn't Exist with room Id : %v", room_id)	
+					server_response := ServerResponse{Type:"error",UserName:user_name,Message:message,RoomId: room_id}
+						
+					conn.WriteJSON(server_response)
+					fmt.Println(message)
 
 					}else {
 
 					   	conn_room_id , ok := conn_map[conn]
 
 							if ok && conn_room_id == room_id {
-								if err := conn.WriteMessage(messageType,[]byte("Already in  the room... ")); err != nil {
-									log.Printf("User Already in Room ")
-								} 
+
+									message := fmt.Sprintf("User %v Already  in  room Id : %v",user_name, room_id)	
+						
+									server_response := ServerResponse{Type:"error",UserName:user_name,Message:message,RoomId: room_id}
+					
+									conn.WriteJSON(server_response)
+									fmt.Println(message)
 
 						}else {
+
 						room_map[room_id] = append(room_map[room_id], user)
 	    			conn_map[conn] = room_id
 			
@@ -114,51 +130,72 @@ func MainHanlder(w http.ResponseWriter, r *http.Request) {
 
 						room_conn := room_map[room_id]
 					
-						message := fmt.Sprintf("%v  Joined room : %v", user_name,room_id)
 
-					for _,receiver:= range room_conn {
-						 	 receiver_conn := receiver.User_conn
-					 			
-					 		if err := receiver_conn.WriteMessage(messageType, []byte(message)); err != nil {
-										log.Println("Error Sending Message ")
-							continue
-					 } 
-				 		log.Printf(" %v Joined Room %v\n",user_name, room_id)
-					}
-					}
+						message := fmt.Sprintf("%v  Joined room : %v", user_name,room_id)
+					
+						server_response := ServerResponse{Type:"room_joined",UserName:user_name,Message:message,RoomId: room_id}
+
+							for _,receiver:= range room_conn {
+						 		 
+								receiver_conn := receiver.User_conn
+					 		
+								receiver_conn.WriteJSON(server_response)
+
+
+				 			log.Println(message)
+						}
 				}
+			}
 	    
 		case "message":
 			 
 				room_id := ClientMessage.RoomId
 			  sender_name := ClientMessage.Username	
+				
 				if room_id == 0 {
-					log.Println("No RoomId Provided ")
-					if err := conn.WriteMessage(messageType,[]byte("Room Id is Required  ")) ; err != nil {
-					log.Println(err)
+						message := fmt.Sprintf("No Room Id provided... ")	
+							
+						server_response := ServerResponse{Type:"error",UserName:sender_name,Message:message,RoomId: room_id}
+						
+						conn.WriteJSON(server_response)
+					  
+						log.Println(message)
+
+						continue
+			
 				}
-					continue
-			}
 
 				
 
 				join_room_id , ok := conn_map[conn]
 
 				if !ok {
-					fmt.Println("Connection not Found ")
-					if err := conn.WriteMessage(messageType,[]byte("Please Join the room first ")) ; err != nil {
-					log.Println(err)
-					continue
-				}
+					
+					message := fmt.Sprintf("Please Join the Room First : %v ",room_id)	
+							
+						server_response := ServerResponse{Type:"error",UserName:sender_name,Message:message,RoomId: room_id}
+						
+						conn.WriteJSON(server_response)
+					  
+						log.Println(message)
+
+						continue
 
 			}else {
+
 				if join_room_id != room_id {
-					fmt.Println("Wrong Room")
-						if err := conn.WriteMessage(messageType,[]byte("Please Join the room first ")) ; err != nil {
-						log.Println(err)
+					message := fmt.Sprintf("Wrong Room Id Provided : %v ",room_id)	
+							
+					server_response := ServerResponse{Type:"error",UserName:sender_name,Message:message,RoomId: room_id}
+						
+						conn.WriteJSON(server_response)
+					  
+						log.Println(message)
+
 						continue
-						}	
-				}
+			}
+
+
  				 current_room := room_map[join_room_id]
 			 	 sender_message := ClientMessage.Message
 
@@ -166,14 +203,18 @@ func MainHanlder(w http.ResponseWriter, r *http.Request) {
 
 									
 					fmt.Println("Writing Message to all user ")
-				 for _,receiver:= range current_room {
+			
+					for _,receiver:= range current_room {
+
 					 receiver_name := receiver.Username
 					 receiver_conn := receiver.User_conn
-				 		message_to_send := fmt.Sprintf(" %v : %v ",sender_name,sender_message)
-					 if err := receiver_conn.WriteMessage(messageType, []byte(message_to_send)); err != nil {
-						log.Println("Error Sending Message ",err)
-						continue
-				 }
+					 
+				 	 message_to_send := fmt.Sprintf(" %v : %v ",sender_name,sender_message)
+					
+					 server_response := ServerResponse{Type:"message", UserName:sender_name,Message:message_to_send,RoomId:room_id }
+						
+					 receiver_conn.WriteJSON(server_response)
+					 
 				 log.Printf("Message Written to User :  %v \n",receiver_name)
 				 
 
