@@ -34,7 +34,8 @@ func CreateConnection() (*websocket.Conn ,  error)  {
 			return nil, err  
 		}
 		
-		log.Println(" Connected to Server ")
+		log.Println(" Connected to Server... ")
+		fmt.Printf("\n")
 
    return conn,nil 
 
@@ -155,12 +156,18 @@ for {
 			switch msg.Type  {
 			
 					case "room_created" :
-							room_id = msg.RoomId	
-							fmt.Println(msg.Message)
+					
+						  room_id = msg.RoomId	
+							fmt.Printf("\r\033[k%s\n",msg.Message)
+
 					case "room_joined": 
-							fmt.Println(msg.Message)
-				  case "error" : 
-							fmt.Println("Error Occured: ",msg.Message)
+
+							fmt.Printf("\r\033[k%s\n",msg.Message)
+				  
+					case "error" : 
+
+							fmt.Printf("\r\033[k%s\n",msg.Message)
+
 					
 					case "chat_message": 	
 							fmt.Printf("\r\033[k%s\n",msg.Message)
@@ -168,9 +175,9 @@ for {
 					 default: 
 					 		fmt.Println("No Valid Response From Server")
 					}
-				
+							
+							fmt.Println( "----------------------- ")
 							fmt.Printf("Enter Message : ")
-	
 		}
 	}
 
