@@ -44,43 +44,55 @@ func CreateConnection() (*websocket.Conn ,  error)  {
 }
 
 
-func GetUserInput(userInput chan string ){
+func GetUserInput(userInput chan string,done chan struct{} ){
 		reader := bufio.NewReader(os.Stdin)
 
 
 		for {
-		msg , _ := reader.ReadString('\n')
-		msg = strings.TrimSpace(msg)
 
-		if msg != ""{
-			userInput <- msg 
+			select {
+
+				case <- done : 
+					return 
+		
+					default: 
+						msg , _ := reader.ReadString('\n')
+						msg = strings.TrimSpace(msg)
+	
+						if msg != ""{
+							userInput <- msg 
+					}
+			}
 	}
-
-		}
 
 }
 
-func GetServerResponse(conn *websocket.Conn, serverResponseChan chan ServerResponse){
+func GetServerResponse(conn *websocket.Conn, serverResponseChan chan ServerResponse, done chan struct{}){
 
 	for {
-	
+
+		select {
+
+		case <- done : 
+		return 
+		
+	default: 
+
 		_, res, err := conn.ReadMessage()
 	
 		if err != nil {
-		fmt.Println(err)
-		continue
+		return 
 		}
 		
 		var server_response ServerResponse
 		
 		if err := json.Unmarshal(res,&server_response); err != nil {
-			fmt.Println(err)
-			continue
+			return
 		}
 		
 
 	serverResponseChan <- server_response
-		
+}
 }
 }
 
@@ -130,9 +142,10 @@ func StartConnection(Type string){
 
   userInput := make(chan string)
 	serverResponseChan := make(chan ServerResponse)
+	done := make(chan struct{})
 
-	go GetUserInput(userInput)
-	go GetServerResponse(conn,serverResponseChan)
+	go GetUserInput(userInput,done)
+	go GetServerResponse(conn,serverResponseChan,done)
 
 for {
 	select {
@@ -141,10 +154,14 @@ for {
 
     fmt.Print("\033[A\033[K")
 		
-		if msg == "/exit"{
+		if msg == "/leave"{
 			fmt.Println("Exiting....")
 			if err := conn.WriteJSON(UserMessage{Msgtype:"leave",Username:user_name,RoomId:room_id}); err != nil {
-			os.Exit(0)
+		}
+		  close(done)
+			conn.Close()
+			return 
+	
 		}
 		conn.WriteJSON(UserMessage{
 				Msgtype: "message",
@@ -159,21 +176,24 @@ for {
 					case "room_created" :
 					
 						  room_id = msg.RoomId	
-							fmt.Printf("\r\033[k%s\n",msg.Message)
+							fmt.Printf("\r\033[K%s\n",msg.Message)
 
 					case "room_joined": 
 
-							fmt.Printf("\r\033[k%s\n",msg.Message)
+							fmt.Printf("\r\033[K%s\n",msg.Message)
 				  
 					case "error" : 
 
-							fmt.Printf("\r\033[k%s\n",msg.Message)
+							fmt.Printf("\r\033[K%s\n",msg.Message)
 
 					
 					case "chat_message": 	
-							fmt.Printf("\r\033[k%s\n",msg.Message)
-				
-					 default: 
+							fmt.Printf("\r\033[K%s\n",msg.Message)
+			
+					case "leave": 
+							fmt.Printf("\r\033[K%s\n",msg.Message)
+					 
+					default: 
 					 		fmt.Println("No Valid Response From Server")
 					}
 							

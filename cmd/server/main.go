@@ -131,7 +131,7 @@ func MainHanlder(w http.ResponseWriter, r *http.Request) {
 						room_conn := room_map[room_id]
 					
 
-						message := fmt.Sprintf("%v  Joined room : %v", user_name,room_id)
+						message := fmt.Sprintf("%v  Joined the room ", user_name)
 					
 						server_response := ServerResponse{Type:"room_joined",UserName:user_name,Message:message,RoomId: room_id}
 
@@ -285,7 +285,7 @@ func MainHanlder(w http.ResponseWriter, r *http.Request) {
 
 				room_map[joined_room_id] = users
        
-				message := fmt.Sprintf("User %v left the room %v",sender_name,joined_room_id)
+				message := fmt.Sprintf("User %v left room %v",sender_name,joined_room_id)
 
 				server_response := ServerResponse{Type:"leave",UserName:sender_name,Message:message,RoomId: room_id}
 
@@ -295,7 +295,7 @@ func MainHanlder(w http.ResponseWriter, r *http.Request) {
 
 				delete(conn_map,conn)
 
-				log.Printf("User %v left the room %v",sender_name,joined_room_id)
+				log.Printf("User %v left room %v",sender_name,joined_room_id)
 
 
 			}
