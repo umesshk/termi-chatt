@@ -109,10 +109,12 @@ func MainHanlder(w http.ResponseWriter, r *http.Request) {
 						}else {
 						room_map[room_id] = append(room_map[room_id], user)
 	    			conn_map[conn] = room_id
-						message := fmt.Sprintf("%v  Joined room : %v", user_name,room_id)
+			
+
 
 						room_conn := room_map[room_id]
 					
+						message := fmt.Sprintf("%v  Joined room : %v", user_name,room_id)
 
 					for _,receiver:= range room_conn {
 							 receiver_name := receiver.Username
@@ -171,16 +173,16 @@ func MainHanlder(w http.ResponseWriter, r *http.Request) {
 				 log.Printf("Sender Message %v\n", sender_message)
 
 									
+					fmt.Println("Writing Message to all user ")
 				 for _,receiver:= range current_room {
 					 receiver_name := receiver.Username
 					 receiver_conn := receiver.User_conn
-					 fmt.Println("Writing Message to all user ")
 				 		message_to_send := fmt.Sprintf(" %v : %v ",sender_name,sender_message)
 					 if err := receiver_conn.WriteMessage(messageType, []byte(message_to_send)); err != nil {
 						log.Println("Error Sending Message ",err)
 						continue
 				 }
-				 log.Printf("Message Written to User's :  %v \n",receiver_name)
+				 log.Printf("Message Written to User :  %v \n",receiver_name)
 				 
 
 

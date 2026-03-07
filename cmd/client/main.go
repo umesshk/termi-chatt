@@ -5,7 +5,8 @@ import (
 	"fmt"
 	"os"
 	"log"
-_	"encoding/json"
+	"bufio"
+	"strings"
 )
 
 
@@ -33,115 +34,106 @@ func CreateConnection() (*websocket.Conn ,  error)  {
 }
 
 
- var serverResponse = make(chan bool )
-func GetServerMessage (conn *websocket.Conn){
-				
-				for {
-			
-					_,p,err := conn.ReadMessage()
-
-					if err != nil {
-						log.Println(err)
-						continue
-					}
-			
-					fmt.Printf("\n%s\n",string(p))
-
-					serverResponse <- true
-
-				}
-}
+func GetUserInput(userInput chan string ){
+		reader := bufio.NewReader(os.Stdin)
 
 
+		for {
+		fmt.Print("Enter Message : ")
+		msg , _ := reader.ReadString('\n')
+		msg = strings.TrimSpace(msg)
 
-func CreateRoom(){
-  var user_name string
-	fmt.Printf("Enter your Username: ") 
-	fmt.Scanln(&user_name)
-
-	conn , err := CreateConnection() 
-
-    if err != nil {
-			fmt.Println("Error Creating Connection ",err)
-		}
-
-			go GetServerMessage(conn) 
-
-		if err := conn.WriteJSON(UserMessage{Msgtype: "create",Username:user_name}); 
- err != nil {
-			log.Println("Error Occured", err)
-			
-			}
-			
-		
- 		 <-serverResponse	
-
-			for {
-			
-			var user_message string 
-			fmt.Printf("Enter Message : ")
-			fmt.Scanln(&user_message)
-
-			if user_message != ""{
-				
-			 if err := conn.WriteJSON(UserMessage{Msgtype:"message",Username:user_name,Message:user_message,RoomId:1}); err != nil {
-					log.Println(err)
-					continue
-				}
-
-			}
+		if msg != ""{
+			userInput <- msg 
+	}
 
 		}
 
 }
 
-func JoinRoom(){
+func GetServerResponse(conn *websocket.Conn, serverResponse chan string ){
 
-	var user_name string  
-	fmt.Printf("Enter Your User Name : ")
-	fmt.Scanln(&user_name)
+	for {
 	
-	var roomId int
-	fmt.Printf("Enter Room Id: ")
-	fmt.Scanln(&roomId)
+		_, p, err := conn.ReadMessage()
+	if err != nil {
+		fmt.Println(err)
+		continue
+	}
+	serverResponse <- string(p)
+		
+}
+}
 
 
- conn, err := CreateConnection()
 
- 			if err != nil {
+
+
+
+
+
+func StartConnection(Type string){
+
+	var user_name string
+	fmt.Printf("Enter your name :  ")
+	fmt.Scanln(&user_name)
+
+		var room_id int
+
+	if Type=="join" {
+		
+		fmt.Printf("Enter the Room Id : ")
+		fmt.Scanln(&room_id)
+
+	}
+
+	conn, err := CreateConnection()
+
+	if err != nil {
+		fmt.Println(err)
+		return 
+	}
+	
+ if Type == "create"{
+	 if err := conn.WriteJSON(UserMessage{Msgtype:Type,Username:user_name}); err != nil {
+		fmt.Println(err)
+	  return 	
+	 }
+ }
+
+ if Type == "join"{
+
+	 if err := conn.WriteJSON(UserMessage{Msgtype:Type, RoomId:room_id, Username: user_name}); err != nil {
 			fmt.Println(err)
 			return 
-			}
- 
-			go GetServerMessage(conn) 
+	 }
+ }
 
-			if err := conn.WriteJSON(UserMessage{Msgtype: "join",RoomId: roomId , Username:user_name}); 
- err != nil {
-			log.Println("Error Occured", err)
-			
-			}
-			
-		
- 		 <-serverResponse	
+  userInput := make(chan string)
+	serverResponse := make(chan string)
 
-			for {
-			
-			var user_message string 
-			fmt.Printf("Enter Message : ")
-			fmt.Scanln(&user_message)
+	go GetUserInput(userInput)
 
-			if user_message != ""{
-				
-			 if err := conn.WriteJSON(UserMessage{Msgtype:"message",Username:user_name,Message:user_message,RoomId:1}); err != nil {
-					log.Println(err)
-					continue
-				}
-
-			}
-
+for {
+	select {
+	 	
+		case msg :=  <- userInput: 
+		if msg == "/exit"{
+			fmt.Println("Exiting....")
+			os.Exit(0)
 		}
+		conn.WriteJSON(UserMessage{
+				Msgtype: "message",
+				Username: user_name,
+				RoomId: room_id,
+				Message: msg,
+			})
+		case 	msg :=<- serverResponse: 
+				fmt.Println(msg)
+	
+		}
+	}
 
- 
 
 }
 
@@ -164,11 +156,11 @@ for (Chances>0){
 	switch user_choice { 
 	case 1 : 
 	 	fmt.Println("Creating Room ")
-		CreateRoom()
+		StartConnection("create")	
  	
 	case 2: 
 		fmt.Println("Joining Room ")
- 		JoinRoom()
+		StartConnection("join")	
 	 
 	case 3:
 		fmt.Println("Exiting Program...")
