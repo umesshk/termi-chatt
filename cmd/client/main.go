@@ -39,7 +39,6 @@ func GetUserInput(userInput chan string ){
 
 
 		for {
-		fmt.Print("Enter Message : ")
 		msg , _ := reader.ReadString('\n')
 		msg = strings.TrimSpace(msg)
 
@@ -113,11 +112,15 @@ func StartConnection(Type string){
 	serverResponse := make(chan string)
 
 	go GetUserInput(userInput)
+	go GetServerResponse(conn,serverResponse)
 
 for {
 	select {
 	 	
 		case msg :=  <- userInput: 
+
+    fmt.Print("\033[A\033[K")
+		
 		if msg == "/exit"{
 			fmt.Println("Exiting....")
 			os.Exit(0)
@@ -129,7 +132,8 @@ for {
 				Message: msg,
 			})
 		case 	msg :=<- serverResponse: 
-				fmt.Println(msg)
+				fmt.Printf("\r\033[k%s\n",msg)
+				fmt.Printf("Enter Message : ")
 	
 		}
 	}
