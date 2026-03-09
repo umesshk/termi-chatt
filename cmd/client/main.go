@@ -8,15 +8,10 @@ import (
 	"bufio"
 	"strings"
 	"encoding/json"
+	"github.com/umesshk/termi-chatt/internal/user"
 )
 
 
- type UserMessage struct {
- Msgtype 		string  `json:"type"` 
- Message		string  `json:"message,omitempty"` 
- RoomId   	int			`json:"roomId,omitempty"`
- Username 	string 	`json:"username"`
-}
 
 type ServerResponse struct {
 	Type   			string 	`json:"type"`
@@ -126,7 +121,7 @@ func StartConnection(Type string){
 	}
 	
  if Type == "create"{
-	 if err := conn.WriteJSON(UserMessage{Msgtype:Type,Username:user_name}); err != nil {
+	 if err := conn.WriteJSON(user.UserMessage{Msgtype:Type,Username:user_name}); err != nil {
 		fmt.Println(err)
 	  return 	
 	 }
@@ -134,7 +129,7 @@ func StartConnection(Type string){
 
  if Type == "join"{
 
-	 if err := conn.WriteJSON(UserMessage{Msgtype:Type, RoomId:room_id, Username: user_name}); err != nil {
+	 if err := conn.WriteJSON(user.UserMessage{Msgtype:Type, RoomId:room_id, Username: user_name}); err != nil {
 			fmt.Println(err)
 			return 
 	 }
@@ -156,14 +151,14 @@ for {
 		
 		if msg == "/leave"{
 			fmt.Println("Exiting....")
-			if err := conn.WriteJSON(UserMessage{Msgtype:"leave",Username:user_name,RoomId:room_id}); err != nil {
+			if err := conn.WriteJSON(user.UserMessage{Msgtype:"leave",Username:user_name,RoomId:room_id}); err != nil {
 		}
 		  close(done)
 			conn.Close()
 			return 
 	
 		}
-		conn.WriteJSON(UserMessage{
+		conn.WriteJSON(user.UserMessage{
 				Msgtype: "message",
 				Username: user_name,
 				RoomId: room_id,
