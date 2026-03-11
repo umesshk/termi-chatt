@@ -8,7 +8,7 @@ import (
 	"bufio"
 	"strings"
 	"encoding/json"
-	"github.com/umesshk/termi-chatt/internal/user"
+	"github.com/umeshhk/termi-chatt/internal/user"
 )
 
 
