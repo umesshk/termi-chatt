@@ -209,7 +209,7 @@ func MainHanlder(w http.ResponseWriter, r *http.Request) {
 					 receiver_name := receiver.Username
 					 receiver_conn := receiver.User_conn
 					 
-				 	 message_to_send := fmt.Sprintf(" %v : %v ",sender_name,sender_message)
+				 	 message_to_send := fmt.Sprintf("%v",sender_message)
 					
 					 server_response := ServerResponse{Type:"chat_message", UserName:sender_name,Message:message_to_send,RoomId:room_id }
 						
