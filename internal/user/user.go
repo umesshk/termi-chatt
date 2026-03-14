@@ -1,4 +1,10 @@
 
+package user
+
+import (
+	"github.com/gorilla/websocket"
+)
+
 type UserMessage struct {
  Msgtype 		string  `json:"type"` 
  Message		string  `json:"message,omitempty"` 

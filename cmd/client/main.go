@@ -20,7 +20,7 @@ type ServerResponse struct {
 	RoomId			int 		`json:"roomId"`
 }
 
-colors := []string{
+var colors = []string{
     "\033[31m",
     "\033[32m",
     "\033[33m",
@@ -87,7 +87,7 @@ func GetServerResponse(conn *websocket.Conn, serverResponseChan chan ServerRespo
 		return 
 		}
 		
-		var server_response SServerResponserverResponse
+		var server_response ServerResponse
 		
 		if err := json.Unmarshal(res,&server_response); err != nil {
 			return
