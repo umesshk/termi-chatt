@@ -8,6 +8,7 @@ import (
 	"bufio"
 	"strings"
 	"encoding/json"
+	"math/rand/v2"
 	"github.com/umeshhk/termi-chatt/internal/user"
 )
 
@@ -150,6 +151,10 @@ func StartConnection(Type string){
 	go GetUserInput(userInput,done)
 	go GetServerResponse(conn,serverResponseChan,done)
 
+	rand_idx := rand.IntN(len(colors))
+			color := colors[rand_idx]
+
+
 for {
 	select {
 	 	
@@ -158,7 +163,7 @@ for {
     fmt.Print("\033[A\033[K")
 		
 		if msg == "/leave"{
-			fmt.Println("Exiting....")
+			fmt.Println("\033[31m Exiting....\033[0m")
 			if err := conn.WriteJSON(user.UserMessage{Msgtype:"leave",Username:user_name,RoomId:room_id}); err != nil {
 		}
 		  close(done)
@@ -172,6 +177,7 @@ for {
 				RoomId: room_id,
 				Message: msg,
 			})
+
 		case 	msg :=<- serverResponseChan: 
 
 			switch msg.Type  {
@@ -183,7 +189,7 @@ for {
 
 					case "room_joined": 
 
-							fmt.Printf("\r\033[K%s\n",msg.Message)
+					fmt.Printf("\r\033[K%s\n", msg.Message)
 				  
 					case "error" : 
 
@@ -191,7 +197,7 @@ for {
 
 					
 					case "chat_message": 	
-							fmt.Printf("\r\033[K%s\n",msg.Message)
+					fmt.Printf("\r\033[K%s%s\033[0m : %s\n",color,msg.UserName,msg.Message)
 			
 					case "leave": 
 							fmt.Printf("\r\033[K%s\n",msg.Message)
@@ -200,8 +206,8 @@ for {
 					 		fmt.Println("No Valid Response From Server")
 					}
 							
-							fmt.Println( "----------------------- ")
-							fmt.Printf("Enter Message : ")
+						fmt.Printf("\033[92m-----------------------\033[0m\n")
+						fmt.Printf("\033[96m Enter Message : \033[0m")
 		}
 	}
 
