@@ -1,6 +1,7 @@
 # Termi-Chatt
 
 **Termi-Chatt** is a terminal-based real-time chat application written in **Go** using **WebSockets**.
+
 It allows users to create chat rooms, join existing rooms, and communicate with other users directly from the terminal.
 
 The goal of this project is to explore **concurrency in Go**, **WebSocket communication**, and building interactive **CLI-based network applications**.
@@ -68,7 +69,7 @@ The client:
 Clone the repository:
 
 ```bash
-git clone https://github.com/umeshhk/termi-chatt.git
+git clone https://github.com/umeshhk/termi-chatt
 cd termi-chatt
 ```
 
