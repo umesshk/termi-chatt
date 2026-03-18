@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"fmt"
+	"sync"	
 )
 
 var upgrader = websocket.Upgrader{
@@ -13,6 +14,7 @@ var upgrader = websocket.Upgrader{
 	WriteBufferSize: 1024,
 }
 
+var mu sync.Mutex
 
 type UserMessage struct {
  Msgtype 		string  `json:"type"` 
@@ -75,10 +77,14 @@ func MainHanlder(w http.ResponseWriter, r *http.Request) {
 			
 				user_name := ClientMessage.Username
 				user := User{userId,user_name,conn}
-
+				
+				mu.Lock()
 				room_map[roomId] = append(room_map[roomId], user)	
 
 	    	conn_map[conn] = roomId	
+
+				mu.Unlock()
+
 
 				message := fmt.Sprintf(" Created Room with Room Id :  %v",roomId)
 
@@ -97,8 +103,11 @@ func MainHanlder(w http.ResponseWriter, r *http.Request) {
 				
 		   
 				log.Println("Client Room Id ", room_id)
-
+				
+				mu.Lock()
 				_, ok := room_map[room_id]	
+				mu.Unlock()
+
 				
 				if !ok {
 
@@ -109,8 +118,9 @@ func MainHanlder(w http.ResponseWriter, r *http.Request) {
 					fmt.Println(message)
 
 					}else {
-
+							mu.Lock()
 					   	conn_room_id , ok := conn_map[conn]
+							mu.Unlock()
 
 							if ok && conn_room_id == room_id {
 
@@ -123,12 +133,15 @@ func MainHanlder(w http.ResponseWriter, r *http.Request) {
 
 						}else {
 
+						mu.Lock()
 						room_map[room_id] = append(room_map[room_id], user)
 	    			conn_map[conn] = room_id
+						mu.Unlock()
 			
 
-
+						mu.Lock()
 						room_conn := room_map[room_id]
+						mu.Unlock()
 					
 
 						message := fmt.Sprintf("%v  Joined the room ", user_name)
@@ -146,6 +159,7 @@ func MainHanlder(w http.ResponseWriter, r *http.Request) {
 						}
 				}
 			}
+
 	    
 		case "message":
 			 
@@ -167,7 +181,9 @@ func MainHanlder(w http.ResponseWriter, r *http.Request) {
 
 				
 
+				mu.Lock()
 				joined_room_id , ok := conn_map[conn]
+				mu.Unlock()
 
 				if !ok {
 					
@@ -195,8 +211,9 @@ func MainHanlder(w http.ResponseWriter, r *http.Request) {
 						continue
 			}
 
-
+				mu.Lock()
  				 current_room := room_map[joined_room_id]
+				 mu.Unlock()
 			 	 sender_message := ClientMessage.Message
 
 				 log.Printf("Sender Message %v\n", sender_message)
@@ -241,8 +258,9 @@ func MainHanlder(w http.ResponseWriter, r *http.Request) {
 				}
 
 				
-
+				mu.Lock()
 				joined_room_id , ok := conn_map[conn]
+				mu.Unlock()
 
 				if !ok {
 					
@@ -269,7 +287,9 @@ func MainHanlder(w http.ResponseWriter, r *http.Request) {
 
 						continue
 			}else {
+				mu.Lock()
 				users := room_map[joined_room_id]
+				mu.Unlock()
 				
 				idx_to_delete := -1  
 				for i, user := range users {
@@ -283,7 +303,9 @@ func MainHanlder(w http.ResponseWriter, r *http.Request) {
 					users = append(users[:idx_to_delete], users[idx_to_delete+1:]...)
 				} 
 
+				mu.Lock()
 				room_map[joined_room_id] = users
+				mu.Unlock()
        
 				message := fmt.Sprintf("User %v left room %v",sender_name,joined_room_id)
 
@@ -293,7 +315,9 @@ func MainHanlder(w http.ResponseWriter, r *http.Request) {
 					user.User_conn.WriteJSON(server_response)
 				}
 
+				mu.Lock()
 				delete(conn_map,conn)
+				mu.Unlock()
 
 				log.Printf("User %v left room %v",sender_name,joined_room_id)
 
@@ -312,14 +336,21 @@ func MainHanlder(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+
 func ServerTester(){
  	
 	for i:=0; i<1000; i++ {
-		go func(){
-			 fmt.Println("Writting to room : ", i)
+		
+
+		go func(i int ){
+		fmt.Println("Writting to room : ", i)
+				mu.Lock()
 				room_map[1] = append(room_map[1],User{});			
-		}()
+				mu.Unlock()
+		}(i)
 	}
+
+	fmt.Println("All Users Created Successfully ")
 
 }
 
