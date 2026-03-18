@@ -312,11 +312,25 @@ func MainHanlder(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func ServerTester(){
+ 	
+	for i:=0; i<1000; i++ {
+		go func(){
+			 fmt.Println("Writting to room : ", i)
+				room_map[1] = append(room_map[1],User{});			
+		}()
+	}
+
+}
+
+
 func main() {
 
 	PORT := ":8080"
 
 	log.Printf("Starting Server on  %v\n", PORT)
+
+	go ServerTester();
 
 	http.HandleFunc("/ws", MainHanlder)
 	err := http.ListenAndServe(PORT, nil)
