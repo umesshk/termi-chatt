@@ -43,35 +43,7 @@ var room_map = make(map[int][]User)
 // websocket connection -> room id 
 var conn_map = make(map[*websocket.Conn]int)
 
-
-func MainHanlder(w http.ResponseWriter, r *http.Request) {
-
-	conn, err := upgrader.Upgrade(w, r, nil)
-	defer conn.Close()
-
-	if err != nil {
-		log.Fatal(err)
-	 return 	
-	}
-
-	for {
-		messageType, p, err := conn.ReadMessage()
-
-		if err != nil {
-			log.Println(err)
-			continue
-		}
-
-	var ClientMessage UserMessage 
- 
-	if err := json.Unmarshal(p,&ClientMessage); err != nil{
-			log.Println("Error During Parsing " , err)
-			
-			continue	
-	} 
-		switch ClientMessage.Msgtype {
-
-		case "create" :
+func handleCreate(ClientMessage UserMessage , conn *websocket.Conn ){
 				roomId++
 				userId++
 			
@@ -94,8 +66,10 @@ func MainHanlder(w http.ResponseWriter, r *http.Request) {
 
 				log.Printf("%v  Created room %v\n" ,  user_name, roomId)
 	
-			case "join" :  
-			
+}
+
+func handleJoin(ClientMessage UserMessage, conn *websocket.Conn ){
+	
 				room_id   := ClientMessage.RoomId
 				user_name := ClientMessage.Username
 				userId++ 
@@ -159,10 +133,10 @@ func MainHanlder(w http.ResponseWriter, r *http.Request) {
 						}
 				}
 			}
+}
 
-	    
-		case "message":
-			 
+func handleMessage( ClientMessage UserMessage, conn *websocket.Conn ){
+ 
 				room_id := ClientMessage.RoomId
 			  sender_name := ClientMessage.Username	
 				
@@ -175,7 +149,7 @@ func MainHanlder(w http.ResponseWriter, r *http.Request) {
 					  
 						log.Println(message)
 
-						continue
+					return	
 			
 				}
 
@@ -195,7 +169,7 @@ func MainHanlder(w http.ResponseWriter, r *http.Request) {
 					  
 						log.Println(message)
 
-						continue
+					return	
 
 			}else {
 
@@ -208,7 +182,7 @@ func MainHanlder(w http.ResponseWriter, r *http.Request) {
 					  
 						log.Println(message)
 
-						continue
+					return	
 			}
 
 				mu.Lock()
@@ -239,7 +213,11 @@ func MainHanlder(w http.ResponseWriter, r *http.Request) {
 				 }
 
 			}
-		case "leave": 
+
+}
+
+func handleLeave( ClientMessage UserMessage, conn *websocket.Conn ){
+				
 				room_id := ClientMessage.RoomId
 			  sender_name := ClientMessage.Username	
 			
@@ -253,7 +231,7 @@ func MainHanlder(w http.ResponseWriter, r *http.Request) {
 					  
 						log.Println(message)
 
-						continue
+					return	
 			
 				}
 
@@ -272,7 +250,7 @@ func MainHanlder(w http.ResponseWriter, r *http.Request) {
 					  
 						log.Println(message)
 
-						continue
+					return	
 
 			}else {
 
@@ -285,7 +263,7 @@ func MainHanlder(w http.ResponseWriter, r *http.Request) {
 					  
 						log.Println(message)
 
-						continue
+					return	
 			}else {
 				mu.Lock()
 				users := room_map[joined_room_id]
@@ -325,6 +303,47 @@ func MainHanlder(w http.ResponseWriter, r *http.Request) {
 			}
 
 		}
+}
+
+func MainHanlder(w http.ResponseWriter, r *http.Request) {
+
+	conn, err := upgrader.Upgrade(w, r, nil)
+
+	if err != nil {
+		log.Fatal(err)
+	 return 	
+	}
+ defer conn.Close()
+ 
+	for {
+		messageType, p, err := conn.ReadMessage()
+
+		if err != nil {
+			log.Println(err)
+			continue
+		}
+
+	var ClientMessage UserMessage 
+ 
+	if err := json.Unmarshal(p,&ClientMessage); err != nil{
+			log.Println("Error During Parsing " , err)
+			
+			continue	
+	} 
+		switch ClientMessage.Msgtype {
+
+		case "create" :
+						handleCreate(ClientMessage,conn)
+	
+		case "join" :  
+						handleJoin(ClientMessage, conn)
+	    
+		case "message":
+			 		 handleMessage(ClientMessage,conn)
+		
+		case "leave": 
+					handleLeave(ClientMessage,conn)	
+
 		default : 
 				if err := conn.WriteMessage(messageType,[]byte("Invalid Input ")) ; err != nil {
 					log.Println(err)
@@ -336,23 +355,23 @@ func MainHanlder(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-
-func ServerTester(){
- 	
-	for i:=0; i<1000; i++ {
-		
-
-		go func(i int ){
-		fmt.Println("Writting to room : ", i)
-				mu.Lock()
-				room_map[1] = append(room_map[1],User{});			
-				mu.Unlock()
-		}(i)
-	}
-
-	fmt.Println("All Users Created Successfully ")
-
-}
+//
+// func ServerTester(){
+//
+// 	for i:=0; i<1000; i++ {
+//
+//
+// 		go func(i int ){
+// 		fmt.Println("Writting to room : ", i)
+// 				mu.Lock()
+// 				room_map[1] = append(room_map[1],User{});			
+// 				mu.Unlock()
+// 		}(i)
+// 	}
+//
+// 	fmt.Println("All Users Created Successfully ")
+//
+// }
 
 
 func main() {
@@ -361,7 +380,7 @@ func main() {
 
 	log.Printf("Starting Server on  %v\n", PORT)
 
-	go ServerTester();
+	// go ServerTester();
 
 	http.HandleFunc("/ws", MainHanlder)
 	err := http.ListenAndServe(PORT, nil)
