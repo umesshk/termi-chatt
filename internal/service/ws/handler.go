@@ -7,12 +7,13 @@ import (
 	"net/http"
 	"fmt"
 	"sync"
+	"github.com/umeshhk/termi-chatt/internal/user"
 )
 
 var mu sync.Mutex
 
 
-func handleCreate(ClientMessage UserMessage , conn *websocket.Conn ){
+func HandleCreate(ClientMessage user.UserMessage , conn *websocket.Conn ){
 				roomId++
 				userId++
 			
@@ -29,7 +30,7 @@ func handleCreate(ClientMessage UserMessage , conn *websocket.Conn ){
 
 				message := fmt.Sprintf(" Created Room with Room Id :  %v",roomId)
 
-				server_response := ServerResponse{Type:"room_created", UserName:user_name, Message: message, RoomId: roomId}
+				server_response := user.ServerResponse{Type:"room_created", UserName:user_name, Message: message, RoomId: roomId}
 			
 				conn.WriteJSON(server_response)
 
@@ -38,7 +39,7 @@ func handleCreate(ClientMessage UserMessage , conn *websocket.Conn ){
 }
 
 
-func handleJoin(ClientMessage UserMessage, conn *websocket.Conn ){
+func HandleJoin(ClientMessage user.UserMessage, conn *websocket.Conn ){
 	
 				room_id   := ClientMessage.RoomId
 				user_name := ClientMessage.Username
@@ -56,7 +57,7 @@ func handleJoin(ClientMessage UserMessage, conn *websocket.Conn ){
 				if !ok {
 
 					message := fmt.Sprintf("Room Doesn't Exist with room Id : %v", room_id)	
-					server_response := ServerResponse{Type:"error",UserName:user_name,Message:message,RoomId: room_id}
+					server_response := user.ServerResponse{Type:"error",UserName:user_name,Message:message,RoomId: room_id}
 						
 					conn.WriteJSON(server_response)
 					fmt.Println(message)
@@ -70,7 +71,7 @@ func handleJoin(ClientMessage UserMessage, conn *websocket.Conn ){
 
 									message := fmt.Sprintf("User %v Already  in  room Id : %v",user_name, room_id)	
 						
-									server_response := ServerResponse{Type:"error",UserName:user_name,Message:message,RoomId: room_id}
+									server_response := user.ServerResponse{Type:"error",UserName:user_name,Message:message,RoomId: room_id}
 					
 									conn.WriteJSON(server_response)
 									fmt.Println(message)
@@ -90,7 +91,7 @@ func handleJoin(ClientMessage UserMessage, conn *websocket.Conn ){
 
 						message := fmt.Sprintf("%v  Joined the room ", user_name)
 					
-						server_response := ServerResponse{Type:"room_joined",UserName:user_name,Message:message,RoomId: room_id}
+						server_response := user.ServerResponse{Type:"room_joined",UserName:user_name,Message:message,RoomId: room_id}
 
 							for _,receiver:= range room_conn {
 						 		 
@@ -105,7 +106,7 @@ func handleJoin(ClientMessage UserMessage, conn *websocket.Conn ){
 			}
 }
 
-func handleMessage( ClientMessage UserMessage, conn *websocket.Conn ){
+func HandleMessage( ClientMessage user.UserMessage, conn *websocket.Conn ){
  
 				room_id := ClientMessage.RoomId
 			  sender_name := ClientMessage.Username	
@@ -113,7 +114,7 @@ func handleMessage( ClientMessage UserMessage, conn *websocket.Conn ){
 				if room_id == 0 {
 						message := fmt.Sprintf("No Room Id provided... ")	
 							
-						server_response := ServerResponse{Type:"error",UserName:sender_name,Message:message,RoomId: room_id}
+						server_response := user.ServerResponse{Type:"error",UserName:sender_name,Message:message,RoomId: room_id}
 						
 						conn.WriteJSON(server_response)
 					  
@@ -133,7 +134,7 @@ func handleMessage( ClientMessage UserMessage, conn *websocket.Conn ){
 					
 					message := fmt.Sprintf("Please Join the Room First : %v ",room_id)	
 							
-						server_response := ServerResponse{Type:"error",UserName:sender_name,Message:message,RoomId: room_id}
+						server_response := user.ServerResponse{Type:"error",UserName:sender_name,Message:message,RoomId: room_id}
 						
 						conn.WriteJSON(server_response)
 					  
@@ -146,7 +147,7 @@ func handleMessage( ClientMessage UserMessage, conn *websocket.Conn ){
 				if joined_room_id != room_id {
 					message := fmt.Sprintf("Wrong Room Id Provided : %v ",room_id)	
 							
-					server_response := ServerResponse{Type:"error",UserName:sender_name,Message:message,RoomId: room_id}
+					server_response := user.ServerResponse{Type:"error",UserName:sender_name,Message:message,RoomId: room_id}
 						
 						conn.WriteJSON(server_response)
 					  
@@ -172,7 +173,7 @@ func handleMessage( ClientMessage UserMessage, conn *websocket.Conn ){
 					 
 				 	 message_to_send := fmt.Sprintf("%v",sender_message)
 					
-					 server_response := ServerResponse{Type:"chat_message", UserName:sender_name,Message:message_to_send,RoomId:room_id }
+					 server_response := user.ServerResponse{Type:"chat_message", UserName:sender_name,Message:message_to_send,RoomId:room_id }
 						
 					 receiver_conn.WriteJSON(server_response)
 					 
@@ -186,7 +187,7 @@ func handleMessage( ClientMessage UserMessage, conn *websocket.Conn ){
 
 }
 
-func handleLeave( ClientMessage UserMessage, conn *websocket.Conn ){
+func HandleLeave( ClientMessage user.UserMessage, conn *websocket.Conn ){
 				
 				room_id := ClientMessage.RoomId
 			  sender_name := ClientMessage.Username	
@@ -195,7 +196,7 @@ func handleLeave( ClientMessage UserMessage, conn *websocket.Conn ){
 				if room_id == 0 {
 						message := fmt.Sprintf("No Room Id provided... ")	
 							
-						server_response := ServerResponse{Type:"error",UserName:sender_name,Message:message,RoomId: room_id}
+						server_response := user.ServerResponse{Type:"error",UserName:sender_name,Message:message,RoomId: room_id}
 						
 						conn.WriteJSON(server_response)
 					  
@@ -214,7 +215,7 @@ func handleLeave( ClientMessage UserMessage, conn *websocket.Conn ){
 					
 					message := fmt.Sprintf("Please Join the Room First : %v ",room_id)	
 							
-						server_response := ServerResponse{Type:"error",UserName:sender_name,Message:message,RoomId: room_id}
+						server_response := user.ServerResponse{Type:"error",UserName:sender_name,Message:message,RoomId: room_id}
 						
 						conn.WriteJSON(server_response)
 					  
@@ -227,7 +228,7 @@ func handleLeave( ClientMessage UserMessage, conn *websocket.Conn ){
 				if joined_room_id != room_id {
 					message := fmt.Sprintf("Wrong Room Id Provided : %v ",room_id)	
 							
-					server_response := ServerResponse{Type:"error",UserName:sender_name,Message:message,RoomId: room_id}
+					server_response := user.ServerResponse{Type:"error",UserName:sender_name,Message:message,RoomId: room_id}
 						
 						conn.WriteJSON(server_response)
 					  
@@ -257,7 +258,7 @@ func handleLeave( ClientMessage UserMessage, conn *websocket.Conn ){
        
 				message := fmt.Sprintf("User %v left room %v",sender_name,joined_room_id)
 
-				server_response := ServerResponse{Type:"leave",UserName:sender_name,Message:message,RoomId: room_id}
+				server_response := user.ServerResponse{Type:"leave",UserName:sender_name,Message:message,RoomId: room_id}
 
 				for _,user := range users {
 					user.User_conn.WriteJSON(server_response)

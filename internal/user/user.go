@@ -17,3 +17,10 @@ type User struct {
 	Username 		string 					`json:"username"`
   User_conn  *websocket.Conn `json:"conn,omitempty"`
 }
+
+type ServerResponse struct {
+	Type   			string 	`json:"type"`
+	UserName 		string 	`json:"username"`
+	Message     string  `json:"message"`
+	RoomId			int 		`json:"roomId"`
+}

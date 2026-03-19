@@ -14,12 +14,7 @@ import (
 
 
 
-type ServerResponse struct {
-	Type   			string 	`json:"type"`
-	UserName 		string 	`json:"username"`
-	Message     string  `json:"message"`
-	RoomId			int 		`json:"roomId"`
-}
+
 
 var colors = []string{
     "\033[31m",
@@ -71,7 +66,7 @@ func GetUserInput(userInput chan string,done chan struct{} ){
 
 }
 
-func GetServerResponse(conn *websocket.Conn, serverResponseChan chan ServerResponse, done chan struct{}){
+func GetServerResponse(conn *websocket.Conn, serverResponseChan chan user.ServerResponse, done chan struct{}){
 
 	for {
 
@@ -88,7 +83,7 @@ func GetServerResponse(conn *websocket.Conn, serverResponseChan chan ServerRespo
 		return 
 		}
 		
-		var server_response ServerResponse
+		var server_response user.ServerResponse
 		
 		if err := json.Unmarshal(res,&server_response); err != nil {
 			return
@@ -145,7 +140,7 @@ func StartConnection(Type string){
  }
 
   userInput := make(chan string)
-	serverResponseChan := make(chan ServerResponse)
+	serverResponseChan := make(chan user.ServerResponse)
 	done := make(chan struct{})
 
 	go GetUserInput(userInput,done)

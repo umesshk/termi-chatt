@@ -7,6 +7,9 @@ import (
 	"net/http"
 	"fmt"
 	"sync"	
+	"github"
+	"github.com/umeshhk/termi-chatt/internal/service/ws/handler"
+	"github.com/umeshhk/termi-chatt/internal/user"
 )
 
 var upgrader = websocket.Upgrader{
@@ -57,16 +60,16 @@ func MainHanlder(w http.ResponseWriter, r *http.Request) {
 		switch ClientMessage.Msgtype {
 
 		case "create" :
-						handleCreate(ClientMessage,conn)
+						handler.HandleCreate(ClientMessage,conn)
 	
 		case "join" :  
-						handleJoin(ClientMessage, conn)
+						handler.HandleJoin(ClientMessage, conn)
 	    
 		case "message":
-			 		 handleMessage(ClientMessage,conn)
+			 		  handler.HandleMessage(ClientMessage,conn)
 		
 		case "leave": 
-					handleLeave(ClientMessage,conn)	
+						handler.HandleLeave(ClientMessage,conn)	
 
 		default : 
 				if err := conn.WriteMessage(messageType,[]byte("Invalid Input ")) ; err != nil {
