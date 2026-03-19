@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"github.com/umeshhk/termi-chatt/internal/service/ws"
 	"github.com/umeshhk/termi-chatt/internal/user"
+	"github.com/umeshhk/termi-chatt/internal/db"
 )
 
 var upgrader = websocket.Upgrader{
@@ -75,7 +76,8 @@ func main() {
 	PORT := ":8080"
 
 	log.Printf("Starting Server on  %v\n", PORT)
-
+	
+	db.ConnectDatabse()
 
 	http.HandleFunc("/ws", MainHanlder)
 	err := http.ListenAndServe(PORT, nil)
