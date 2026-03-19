@@ -1,4 +1,276 @@
 package handler
 
+import (
+	"github.com/gorilla/websocket"
+	"log"
+	"encoding/json"
+	"net/http"
+	"fmt"
+	"sync"
+)
+
+var mu sync.Mutex
 
 
+func handleCreate(ClientMessage UserMessage , conn *websocket.Conn ){
+				roomId++
+				userId++
+			
+				user_name := ClientMessage.Username
+				user := User{userId,user_name,conn}
+				
+				mu.Lock()
+				room_map[roomId] = append(room_map[roomId], user)	
+
+	    	conn_map[conn] = roomId	
+
+				mu.Unlock()
+
+
+				message := fmt.Sprintf(" Created Room with Room Id :  %v",roomId)
+
+				server_response := ServerResponse{Type:"room_created", UserName:user_name, Message: message, RoomId: roomId}
+			
+				conn.WriteJSON(server_response)
+
+				log.Printf("%v  Created room %v\n" ,  user_name, roomId)
+	
+}
+
+
+func handleJoin(ClientMessage UserMessage, conn *websocket.Conn ){
+	
+				room_id   := ClientMessage.RoomId
+				user_name := ClientMessage.Username
+				userId++ 
+				user := User{userId, user_name, conn}
+				
+		   
+				log.Println("Client Room Id ", room_id)
+				
+				mu.Lock()
+				_, ok := room_map[room_id]	
+				mu.Unlock()
+
+				
+				if !ok {
+
+					message := fmt.Sprintf("Room Doesn't Exist with room Id : %v", room_id)	
+					server_response := ServerResponse{Type:"error",UserName:user_name,Message:message,RoomId: room_id}
+						
+					conn.WriteJSON(server_response)
+					fmt.Println(message)
+
+					}else {
+							mu.Lock()
+					   	conn_room_id , ok := conn_map[conn]
+							mu.Unlock()
+
+							if ok && conn_room_id == room_id {
+
+									message := fmt.Sprintf("User %v Already  in  room Id : %v",user_name, room_id)	
+						
+									server_response := ServerResponse{Type:"error",UserName:user_name,Message:message,RoomId: room_id}
+					
+									conn.WriteJSON(server_response)
+									fmt.Println(message)
+
+						}else {
+
+						mu.Lock()
+						room_map[room_id] = append(room_map[room_id], user)
+	    			conn_map[conn] = room_id
+						mu.Unlock()
+			
+
+						mu.Lock()
+						room_conn := room_map[room_id]
+						mu.Unlock()
+					
+
+						message := fmt.Sprintf("%v  Joined the room ", user_name)
+					
+						server_response := ServerResponse{Type:"room_joined",UserName:user_name,Message:message,RoomId: room_id}
+
+							for _,receiver:= range room_conn {
+						 		 
+								receiver_conn := receiver.User_conn
+					 		
+								receiver_conn.WriteJSON(server_response)
+
+
+				 			log.Println(message)
+						}
+				}
+			}
+}
+
+func handleMessage( ClientMessage UserMessage, conn *websocket.Conn ){
+ 
+				room_id := ClientMessage.RoomId
+			  sender_name := ClientMessage.Username	
+				
+				if room_id == 0 {
+						message := fmt.Sprintf("No Room Id provided... ")	
+							
+						server_response := ServerResponse{Type:"error",UserName:sender_name,Message:message,RoomId: room_id}
+						
+						conn.WriteJSON(server_response)
+					  
+						log.Println(message)
+
+					return	
+			
+				}
+
+				
+
+				mu.Lock()
+				joined_room_id , ok := conn_map[conn]
+				mu.Unlock()
+
+				if !ok {
+					
+					message := fmt.Sprintf("Please Join the Room First : %v ",room_id)	
+							
+						server_response := ServerResponse{Type:"error",UserName:sender_name,Message:message,RoomId: room_id}
+						
+						conn.WriteJSON(server_response)
+					  
+						log.Println(message)
+
+					return	
+
+			}else {
+
+				if joined_room_id != room_id {
+					message := fmt.Sprintf("Wrong Room Id Provided : %v ",room_id)	
+							
+					server_response := ServerResponse{Type:"error",UserName:sender_name,Message:message,RoomId: room_id}
+						
+						conn.WriteJSON(server_response)
+					  
+						log.Println(message)
+
+					return	
+			}
+
+				mu.Lock()
+ 				 current_room := room_map[joined_room_id]
+				 mu.Unlock()
+			 	 sender_message := ClientMessage.Message
+
+				 log.Printf("Sender Message %v\n", sender_message)
+
+									
+					fmt.Println("Writing Message to all user ")
+			
+					for _,receiver:= range current_room {
+
+					 receiver_name := receiver.Username
+					 receiver_conn := receiver.User_conn
+					 
+				 	 message_to_send := fmt.Sprintf("%v",sender_message)
+					
+					 server_response := ServerResponse{Type:"chat_message", UserName:sender_name,Message:message_to_send,RoomId:room_id }
+						
+					 receiver_conn.WriteJSON(server_response)
+					 
+				 log.Printf("Message Written to User :  %v \n",receiver_name)
+				 
+
+
+				 }
+
+			}
+
+}
+
+func handleLeave( ClientMessage UserMessage, conn *websocket.Conn ){
+				
+				room_id := ClientMessage.RoomId
+			  sender_name := ClientMessage.Username	
+			
+				
+				if room_id == 0 {
+						message := fmt.Sprintf("No Room Id provided... ")	
+							
+						server_response := ServerResponse{Type:"error",UserName:sender_name,Message:message,RoomId: room_id}
+						
+						conn.WriteJSON(server_response)
+					  
+						log.Println(message)
+
+					return	
+			
+				}
+
+				
+				mu.Lock()
+				joined_room_id , ok := conn_map[conn]
+				mu.Unlock()
+
+				if !ok {
+					
+					message := fmt.Sprintf("Please Join the Room First : %v ",room_id)	
+							
+						server_response := ServerResponse{Type:"error",UserName:sender_name,Message:message,RoomId: room_id}
+						
+						conn.WriteJSON(server_response)
+					  
+						log.Println(message)
+
+					return	
+
+			}else {
+
+				if joined_room_id != room_id {
+					message := fmt.Sprintf("Wrong Room Id Provided : %v ",room_id)	
+							
+					server_response := ServerResponse{Type:"error",UserName:sender_name,Message:message,RoomId: room_id}
+						
+						conn.WriteJSON(server_response)
+					  
+						log.Println(message)
+
+					return	
+			}else {
+				mu.Lock()
+				users := room_map[joined_room_id]
+				mu.Unlock()
+				
+				idx_to_delete := -1  
+				for i, user := range users {
+					if user.User_conn == conn {
+						idx_to_delete = i
+						break;
+					}
+				}
+			
+				if idx_to_delete != -1 {
+					users = append(users[:idx_to_delete], users[idx_to_delete+1:]...)
+				} 
+
+				mu.Lock()
+				room_map[joined_room_id] = users
+				mu.Unlock()
+       
+				message := fmt.Sprintf("User %v left room %v",sender_name,joined_room_id)
+
+				server_response := ServerResponse{Type:"leave",UserName:sender_name,Message:message,RoomId: room_id}
+
+				for _,user := range users {
+					user.User_conn.WriteJSON(server_response)
+				}
+
+				mu.Lock()
+				delete(conn_map,conn)
+				mu.Unlock()
+
+				log.Printf("User %v left room %v",sender_name,joined_room_id)
+
+
+			}
+
+		}
+}
