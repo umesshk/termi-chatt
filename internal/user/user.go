@@ -15,7 +15,7 @@ type UserMessage struct {
 type User struct {
 	UserId   		int 						`json:"userId"`
 	Username 		string 					`json:"username"`
-  User_conn  *websocket.Conn `json:"conn,omitempty"`
+  User_conn  *websocket.Conn 	`json:"conn,omitempty"`
 }
 
 type ServerResponse struct {

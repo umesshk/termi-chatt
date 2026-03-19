@@ -5,10 +5,7 @@ import (
 	"log"
 	"encoding/json"
 	"net/http"
-	"fmt"
-	"sync"	
-	"github"
-	"github.com/umeshhk/termi-chatt/internal/service/ws/handler"
+	"github.com/umeshhk/termi-chatt/internal/service/ws"
 	"github.com/umeshhk/termi-chatt/internal/user"
 )
 
@@ -16,16 +13,6 @@ var upgrader = websocket.Upgrader{
 	ReadBufferSize:  1024,
 	WriteBufferSize: 1024,
 }
-
-
-
-var roomId int = 0
-var userId int = 0 
-//  roomid -> websocket connection slice
-var room_map = make(map[int][]User)
-// websocket connection -> room id 
-var conn_map = make(map[*websocket.Conn]int)
-
 
 
 
@@ -50,7 +37,7 @@ func MainHanlder(w http.ResponseWriter, r *http.Request) {
 			continue
 		}
 
-	var ClientMessage UserMessage 
+	var ClientMessage user.UserMessage 
  
 	if err := json.Unmarshal(p,&ClientMessage); err != nil{
 			log.Println("Error During Parsing " , err)
@@ -60,16 +47,16 @@ func MainHanlder(w http.ResponseWriter, r *http.Request) {
 		switch ClientMessage.Msgtype {
 
 		case "create" :
-						handler.HandleCreate(ClientMessage,conn)
+						ws.HandleCreate(ClientMessage,conn)
 	
 		case "join" :  
-						handler.HandleJoin(ClientMessage, conn)
+						ws.HandleJoin(ClientMessage, conn)
 	    
 		case "message":
-			 		  handler.HandleMessage(ClientMessage,conn)
+			 		  ws.HandleMessage(ClientMessage,conn)
 		
 		case "leave": 
-						handler.HandleLeave(ClientMessage,conn)	
+						ws.HandleLeave(ClientMessage,conn)	
 
 		default : 
 				if err := conn.WriteMessage(messageType,[]byte("Invalid Input ")) ; err != nil {
