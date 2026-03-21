@@ -75,7 +75,7 @@ func main() {
 
 	PORT := ":8080"
 
-	log.Printf("Starting Server on  %v\n", PORT)
+	log.Printf("Starting Server on PORT  %v\n", PORT)
 	
 	db.ConnectDatabse()
 
