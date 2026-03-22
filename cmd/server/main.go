@@ -8,7 +8,7 @@ import (
 	"github.com/umeshhk/termi-chatt/internal/service/ws"
 	"github.com/umeshhk/termi-chatt/internal/user"
 	"github.com/umeshhk/termi-chatt/internal/database"
-	_"database/sql"
+	"database/sql"
 )
 
 var upgrader = websocket.Upgrader{
@@ -19,7 +19,7 @@ var upgrader = websocket.Upgrader{
 
 
 
-
+var db *sql.DB
 
 
 func MainHanlder(w http.ResponseWriter, r *http.Request) {
@@ -79,7 +79,9 @@ func main() {
 
 	log.Printf("Starting Server on PORT  %v\n", PORT)
 	
-	db,db_err := database.ConnectDatabse()
+	var db_err error
+
+	db,db_err = database.ConnectDatabse()
 
 	if db_err != nil {
 		log.Fatal("Database not Connected...",db_err)
