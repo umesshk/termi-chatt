@@ -5,6 +5,8 @@ import (
 	"log"
 	"fmt"
 	"sync"
+	"database/sql"
+	"github.com/umeshhk/termi-chatt/internal/database"
 	userType  "github.com/umeshhk/termi-chatt/internal/user"
 )
 
@@ -21,11 +23,15 @@ var conn_map = make(map[*websocket.Conn]int)
 
 
 
-func HandleCreate(ClientMessage userType.UserMessage , conn *websocket.Conn ){
+func HandleCreate(ClientMessage userType.UserMessage , conn *websocket.Conn,db *sql.DB ){
 				roomId++
 				userId++
 			
 				user_name := ClientMessage.Username
+				
+				database.InsertUser(db,user_name)
+
+
 				user := userType.User{userId,user_name,conn}
 				
 				mu.Lock()
@@ -47,7 +53,7 @@ func HandleCreate(ClientMessage userType.UserMessage , conn *websocket.Conn ){
 }
 
 
-func HandleJoin(ClientMessage userType.UserMessage, conn *websocket.Conn ){
+func HandleJoin(ClientMessage userType.UserMessage, conn *websocket.Conn,db *sql.DB ){
 	
 				room_id   := ClientMessage.RoomId
 				user_name := ClientMessage.Username
@@ -114,7 +120,7 @@ func HandleJoin(ClientMessage userType.UserMessage, conn *websocket.Conn ){
 			}
 }
 
-func HandleMessage( ClientMessage userType.UserMessage, conn *websocket.Conn ){
+func HandleMessage( ClientMessage userType.UserMessage, conn *websocket.Conn,db *sql.DB ){
  
 				room_id := ClientMessage.RoomId
 			  sender_name := ClientMessage.Username	
@@ -195,7 +201,7 @@ func HandleMessage( ClientMessage userType.UserMessage, conn *websocket.Conn ){
 
 }
 
-func HandleLeave( ClientMessage userType.UserMessage, conn *websocket.Conn ){
+func HandleLeave( ClientMessage userType.UserMessage, conn *websocket.Conn ,db *sql.DB){
 				
 				room_id := ClientMessage.RoomId
 			  sender_name := ClientMessage.Username	

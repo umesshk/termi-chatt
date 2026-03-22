@@ -50,16 +50,16 @@ func MainHanlder(w http.ResponseWriter, r *http.Request) {
 		switch ClientMessage.Msgtype {
 
 		case "create" :
-						ws.HandleCreate(ClientMessage,conn)
+						ws.HandleCreate(ClientMessage,conn,db)
 	
 		case "join" :  
-						ws.HandleJoin(ClientMessage, conn)
+						ws.HandleJoin(ClientMessage, conn,db)
 	    
 		case "message":
-			 		  ws.HandleMessage(ClientMessage,conn)
+			 		  ws.HandleMessage(ClientMessage,conn,db)
 		
 		case "leave": 
-						ws.HandleLeave(ClientMessage,conn)	
+						ws.HandleLeave(ClientMessage,conn,db)	
 
 		default : 
 				if err := conn.WriteMessage(messageType,[]byte("Invalid Input ")) ; err != nil {
