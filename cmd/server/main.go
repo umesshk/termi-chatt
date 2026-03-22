@@ -7,13 +7,15 @@ import (
 	"net/http"
 	"github.com/umeshhk/termi-chatt/internal/service/ws"
 	"github.com/umeshhk/termi-chatt/internal/user"
-	"github.com/umeshhk/termi-chatt/internal/db"
+	"github.com/umeshhk/termi-chatt/internal/database"
+	_"database/sql"
 )
 
 var upgrader = websocket.Upgrader{
 	ReadBufferSize:  1024,
 	WriteBufferSize: 1024,
 }
+
 
 
 
@@ -77,9 +79,20 @@ func main() {
 
 	log.Printf("Starting Server on PORT  %v\n", PORT)
 	
-	db.ConnectDatabse()
+	db,db_err := database.ConnectDatabse()
+
+	if db_err != nil {
+		log.Fatal("Database not Connected...",db_err)
+	}
+
+	if err := db.Ping(); err!=nil {
+		log.Fatal("DB not reachable",err)	
+	}
+
+	log.Println("Connected to Database Succesfully")
 
 	http.HandleFunc("/ws", MainHanlder)
+
 	err := http.ListenAndServe(PORT, nil)
 
 	if err != nil {

@@ -1,9 +1,8 @@
-package db 
+package database 
 
 import (
 	"fmt"
 	"database/sql"
-	"log"
 	_ "github.com/lib/pq"
 )
 
@@ -15,7 +14,7 @@ const (
 	dbname = "termichatt"
 )
 
-func ConnectDatabse()  {
+func ConnectDatabse() (*sql.DB, error)  {
 
 	psqlInfo := fmt.Sprintf("host=%s port=%d user=%s" + 
 	" password=%s dbname=%s sslmode=disable",host,port,user,password,dbname)
@@ -26,17 +25,21 @@ func ConnectDatabse()  {
 
 	if err != nil {
 		fmt.Println("Error Occured ",err)
-		return 
+		return nil,err
 	}
 
-	defer db.Close()
 
-	if err := db.Ping(); err!=nil {
-		log.Println("DB not reachable",err)	
-		return 
-	}
 
-	fmt.Println("Connected to Database...")
+
+	
+	
+
+	return db,nil
+
+	
+
+
+
 	
 }
 

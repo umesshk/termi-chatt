@@ -105,7 +105,7 @@ func GetServerResponse(conn *websocket.Conn, serverResponseChan chan user.Server
 func StartConnection(Type string){
 
 	var user_name string
-	fmt.Printf("Enter your name :  ")
+	fmt.Printf("Enter your username :  ")
 	fmt.Scanln(&user_name)
 
 		var room_id int
