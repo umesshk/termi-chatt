@@ -1,8 +1,8 @@
 CREATE TABLE users (
-  id           SERIAL PRIMARY KEY
-  email        TEXT UNIQUE NOT NULL 
-  username     TEXT NOT NULL ,
+  id           SERIAL PRIMARY KEY,
+  username     TEXT   UNIQUE  NOT NULL,
   created_at   TIMESTAMP DEFAULT NOW()
+
 );
 
 
@@ -29,7 +29,7 @@ CREATE TABLE messages (
   user_id       INT REFERENCES users(id)  ON DELETE CASCADE,
   room_id       INT REFERENCES rooms(id)  ON DELETE CASCADE, 
   content       TEXT NOT NULL , 
-  created_at    TIMESTAMP DEFAULT NOW(), 
+  created_at    TIMESTAMP DEFAULT NOW() 
 
 ); 
 
