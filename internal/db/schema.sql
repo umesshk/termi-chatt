@@ -23,7 +23,7 @@ CREATE TABLE room_users (
 );
 
 
-CREATE TABLE message (
+CREATE TABLE messages (
 
   id            SERIAL PRIMARY KEY, 
   user_id       INT REFERENCES users(id)  ON DELETE CASCADE,
@@ -32,3 +32,19 @@ CREATE TABLE message (
   created_at    TIMESTAMP DEFAULT NOW(), 
 
 ); 
+
+
+CREATE INDEX  idx_messages_to_room_id   ON  messages(room_id); 
+
+CREATE INDEX  idx_messages_to_user_id   ON  messages(user_Id);  
+
+CREATE INDEX  idx_room_users_to_room_id ON  room_users(room_id);
+
+CREATE INDEX  idx_room_users_to_user_id ON  room_users(user_id);
+
+
+
+
+
+
+
