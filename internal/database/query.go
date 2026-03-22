@@ -24,5 +24,22 @@ func InsertUser(db *sql.DB, username string){
 
 }
 
+func CreateRoom(db *sql.DB, room_id int ){
+	
+	log.Println("Inserting room to database")
+	
+	query := fmt.Sprintf("INSERT INTO ROOMS (room_id) VALUES ($1)")
+
+	_, err := db.Exec(query,room_id)
+
+	if err != nil {
+		log.Panic("Error Inserting room to db", err)
+		return 
+	}
+
+ log.Printf("%v room  inserted in database... ", room_id)
+
+}
+
 
 
