@@ -11,6 +11,15 @@ func InsertUser(db *sql.DB, username string){
 		
 	fmt.Println("Inserting into users...")
 
+	select_query := fmt.Sprintf("SELECT id  FROM USERS WHERE USERSNAME=$1")
+
+	err := db.QueryRow(select_query,username).Scan(&id)
+
+	if err != nil {
+		fmt.Printf("user: %v  already in database...",username)
+		return
+	}
+
 	query := fmt.Sprintf("INSERT INTO USERS (username) VALUES ($1)")
 	
  _ ,err := db.Exec(query,username)
@@ -38,6 +47,26 @@ func CreateRoom(db *sql.DB, room_id int ){
 	}
 
  log.Printf("%v room  inserted in database... ", room_id)
+
+}
+
+func GetUserFromDB(db *sql.DB, username string ){
+
+	var id int 
+
+	query := fmt.Sprintf("SELECT id  FROM USERS WHERE USERSNAME=$1")
+
+	err := db.QueryRow(query,username).Scan(&id)
+
+	if err == nil {
+		fmt.Printf("user: %v  not in database inserting...",username)
+		InsertUser(db,username)
+		return
+	}
+
+	fmt.Printf("user : %v  present in database ...",username)
+	return 
+
 
 }
 

@@ -30,7 +30,7 @@ func HandleCreate(ClientMessage userType.UserMessage , conn *websocket.Conn,db *
 				user_name := ClientMessage.Username
 				
 				database.InsertUser(db,user_name)
-				database.CreateRoom(db,room_id)
+				database.CreateRoom(db,roomId)
 
 				user := userType.User{userId,user_name,conn}
 				
