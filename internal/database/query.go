@@ -9,44 +9,33 @@ import (
 
 func InsertUser(db *sql.DB, username string){
 		
-	fmt.Println("Inserting into users...")
+	log.Println("Inserting into users...")
 
-	select_query := fmt.Sprintf("SELECT id  FROM USERS WHERE USERSNAME=$1")
-
-	err := db.QueryRow(select_query,username).Scan(&id)
+	_, err := db.Exec("INSERT INTO USERS (username) VALUES ($1) ON CONFLICT (username) DO NOTHING ",username)
 
 	if err != nil {
-		fmt.Printf("user: %v  already in database...",username)
-		return
+		log.Println("Error Inserting user ",err)
+		return 
 	}
-
-	query := fmt.Sprintf("INSERT INTO USERS (username) VALUES ($1)")
-	
- _ ,err := db.Exec(query,username)
-
- if err !=nil {
-	 log.Panic("Error Inserting Value ",err)
-	 return 
- }
 
  log.Printf("%v inserted in database... ", username)
 
 }
 
-func CreateRoom(db *sql.DB, room_id int ){
+func CreateRoom(db *sql.DB  )(int,error){
 	
-	log.Println("Inserting room to database")
+	log.Println("Creating room database...")
 	
-	query := fmt.Sprintf("INSERT INTO ROOMS (room_id) VALUES ($1)")
+	query := fmt.Sprintf("INSERT INTO ROOMS DEFAULT VALUES RETURNING id")
+	
+	var room_id int 
 
-	_, err := db.Exec(query,room_id)
-
-	if err != nil {
-		log.Panic("Error Inserting room to db", err)
-		return 
-	}
-
- log.Printf("%v room  inserted in database... ", room_id)
+	 err := db.QueryRow(query).Scan(&room_id)
+	
+	 if err != nil {
+		 return 0, err
+	 }
+	 return room_id,nil
 
 }
 
@@ -59,16 +48,15 @@ func GetUserFromDB(db *sql.DB, username string ){
 	err := db.QueryRow(query,username).Scan(&id)
 
 	if err == nil {
-		fmt.Printf("user: %v  not in database inserting...",username)
+		fmt.Printf("user: %v  not in database inserting...\n",username)
 		InsertUser(db,username)
 		return
 	}
 
-	fmt.Printf("user : %v  present in database ...",username)
+	fmt.Printf("user : %v  present in database ...\n",username)
 	return 
 
 
 }
-
 
 

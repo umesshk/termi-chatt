@@ -13,24 +13,33 @@ import (
 var mu sync.Mutex
 
 
-var roomId int = 0
-var userId int = 0 
 //  roomid -> websocket connection slice
 var room_map = make(map[int][]userType.User)
 // websocket connection -> room id 
 var conn_map = make(map[*websocket.Conn]int)
-
+var userId int =0
 
 
 
 func HandleCreate(ClientMessage userType.UserMessage , conn *websocket.Conn,db *sql.DB ){
-				roomId++
-				userId++
 			
+				userId++
+
+
 				user_name := ClientMessage.Username
 				
+				roomId,err := database.CreateRoom(db) 
+			
+				if err != nil {
+					log.Println("Error Creating room ",err)
+					return 
+				}
+
+				log.Println("Room created with id ", roomId)
+				
 				database.InsertUser(db,user_name)
-				database.CreateRoom(db,roomId)
+
+				
 
 				user := userType.User{userId,user_name,conn}
 				
@@ -60,7 +69,8 @@ func HandleJoin(ClientMessage userType.UserMessage, conn *websocket.Conn,db *sql
 				userId++ 
 				user := userType.User{userId, user_name, conn}
 				
-		   
+		   database.InsertUser(db,user_name)
+
 				log.Println("Client Room Id ", room_id)
 				
 				mu.Lock()
