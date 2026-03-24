@@ -23,11 +23,18 @@ var userId int =0
 
 func HandleCreate(ClientMessage userType.UserMessage , conn *websocket.Conn,db *sql.DB ){
 			
-				userId++
+				
 
 
 				user_name := ClientMessage.Username
 				
+				userId,err := database.InsertUser(db,user_name)
+				
+				if err != nil {
+					log.Println("Error inserting user  ",err)
+					return 
+				}
+
 				roomId,err := database.CreateRoom(db) 
 			
 				if err != nil {
@@ -37,7 +44,6 @@ func HandleCreate(ClientMessage userType.UserMessage , conn *websocket.Conn,db *
 
 				log.Println("Room created with id ", roomId)
 				
-				database.InsertUser(db,user_name)
 
 				
 

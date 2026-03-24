@@ -7,18 +7,21 @@ import (
 )
 
 
-func InsertUser(db *sql.DB, username string){
+func InsertUser(db *sql.DB, username string)(int,error){
 		
 	log.Println("Inserting into users...")
+	
+	var id int 
 
-	_, err := db.Exec("INSERT INTO USERS (username) VALUES ($1) ON CONFLICT (username) DO NOTHING ",username)
+	 err := db.QueryRow("INSERT INTO USERS (username) VALUES ($1) ON CONFLICT (username) DO UPDATE SET username=EXCLUDED.username RETURNING id",username).Scan(&id)
 
 	if err != nil {
-		log.Println("Error Inserting user ",err)
-		return 
+		return 0,err
 	}
 
  log.Printf("%v inserted in database... ", username)
+
+ return id, nil  
 
 }
 
@@ -39,24 +42,7 @@ func CreateRoom(db *sql.DB  )(int,error){
 
 }
 
-func GetUserFromDB(db *sql.DB, username string ){
-
-	var id int 
-
-	query := fmt.Sprintf("SELECT id  FROM USERS WHERE USERSNAME=$1")
-
-	err := db.QueryRow(query,username).Scan(&id)
-
-	if err == nil {
-		fmt.Printf("user: %v  not in database inserting...\n",username)
-		InsertUser(db,username)
-		return
-	}
-
-	fmt.Printf("user : %v  present in database ...\n",username)
-	return 
 
 
-}
 
 
