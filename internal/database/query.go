@@ -7,21 +7,22 @@ import (
 )
 
 
-func InsertUser(db *sql.DB, username string)(int,error){
+func GetORInsertUser(db *sql.DB, username string)(int,error){
 		
 	log.Println("Inserting into users...")
 	
 	var id int 
 
-	 err := db.QueryRow("INSERT INTO USERS (username) VALUES ($1) ON CONFLICT (username) DO UPDATE SET username=EXCLUDED.username RETURNING id",username).Scan(&id)
+	err := db.QueryRow("INSERT INTO USERS (username) VALUES ($1) ON CONFLICT (username) DO UPDATE SET username=EXCLUDED.username RETURNING id",username).Scan(&id)
 
 	if err != nil {
 		return 0,err
 	}
-
- log.Printf("%v inserted in database... ", username)
-
+ 
+log.Printf("User %v has id %v", username, id)
+ 
  return id, nil  
+
 
 }
 
@@ -42,7 +43,23 @@ func CreateRoom(db *sql.DB  )(int,error){
 
 }
 
+func UserJoinRoom(db *sql.DB,  user_id,room_id  int ){
+   
+	log.Println("user joins room ")	
+	
+	query := fmt.Sprintf("INSERT INTO room_users (user_id, room_id) VALUES ($1,$2) ")
 
+
+	_,err := db.Exec(query,user_id,room_id)
+
+	if err != nil {
+		log.Println("Error user joining room ",err)
+		return 
+	} 
+
+	log.Printf("User %v inserted with room %v in database", user_id,room_id )
+
+}
 
 
 

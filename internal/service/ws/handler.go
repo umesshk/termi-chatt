@@ -17,18 +17,15 @@ var mu sync.Mutex
 var room_map = make(map[int][]userType.User)
 // websocket connection -> room id 
 var conn_map = make(map[*websocket.Conn]int)
-var userId int =0
 
 
 
 func HandleCreate(ClientMessage userType.UserMessage , conn *websocket.Conn,db *sql.DB ){
 			
 				
-
-
 				user_name := ClientMessage.Username
 				
-				userId,err := database.InsertUser(db,user_name)
+				userId,err := database.GetORInsertUser(db,user_name)
 				
 				if err != nil {
 					log.Println("Error inserting user  ",err)
@@ -72,10 +69,16 @@ func HandleJoin(ClientMessage userType.UserMessage, conn *websocket.Conn,db *sql
 	
 				room_id   := ClientMessage.RoomId
 				user_name := ClientMessage.Username
-				userId++ 
+   			 
+				userId,err :=  database.GetORInsertUser(db,user_name)
+				
 				user := userType.User{userId, user_name, conn}
 				
-		   database.InsertUser(db,user_name)
+
+				 if err != nil {
+					 log.Println("Error Occured Inerting/getting user ",err)
+					 return 
+				 }
 
 				log.Println("Client Room Id ", room_id)
 				
@@ -118,6 +121,7 @@ func HandleJoin(ClientMessage userType.UserMessage, conn *websocket.Conn,db *sql
 						room_conn := room_map[room_id]
 						mu.Unlock()
 					
+						database.UserJoinRoom(db,userId,room_id) 	
 
 						message := fmt.Sprintf("%v  Joined the room ", user_name)
 					
