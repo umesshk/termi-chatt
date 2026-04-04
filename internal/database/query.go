@@ -62,4 +62,10 @@ func UserJoinRoom(db *sql.DB,  user_id,room_id  int ){
 }
 
 
+func InsertMessages(db *sql.DB , user_id , room_id int, message string){
+
+
+}
+
+
 
