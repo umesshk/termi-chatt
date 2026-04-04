@@ -145,6 +145,15 @@ func HandleMessage( ClientMessage userType.UserMessage, conn *websocket.Conn,db 
 				room_id := ClientMessage.RoomId
 			  sender_name := ClientMessage.Username	
 				
+				sender_id,err := database.GetORInsertUser(db,sender_name)
+
+				if err != nil {
+				log.Println("Error Occured getting user id ",err)
+					return
+				}
+
+
+
 				if room_id == 0 {
 						message := fmt.Sprintf("No Room Id provided... ")	
 							
@@ -196,7 +205,8 @@ func HandleMessage( ClientMessage userType.UserMessage, conn *websocket.Conn,db 
 			 	 sender_message := ClientMessage.Message
 
 				 log.Printf("Sender Message %v\n", sender_message)
-
+					
+				 database.InsertMessage(db,sender_id,joined_room_id,sender_message)
 									
 					fmt.Println("Writing Message to all user ")
 			

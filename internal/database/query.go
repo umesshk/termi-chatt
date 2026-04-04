@@ -62,8 +62,19 @@ func UserJoinRoom(db *sql.DB,  user_id,room_id  int ){
 }
 
 
-func InsertMessages(db *sql.DB , user_id , room_id int, message string){
+func InsertMessage(db *sql.DB , user_id , room_id int, message string){
 
+log.Println("Inserting Messages into Database ")
+ query := fmt.Sprintf("INSERT INTO MESSAGES (user_id, room_id,content) VALUES ($1,$2,$3)")	
+
+ _,err := db.Exec(query,user_id,room_id,message)
+
+ if err != nil {
+	 log.Println("Error Inserting Messages ",err)
+	 return 
+ }
+
+ log.Printf("User %v inserted in room %v message %v", user_id,room_id,message)
 
 }
 
