@@ -4,7 +4,7 @@ import (
 	"log"
 	"database/sql"
 	"fmt"
-	"github.com/umesshk/termi-chatt/internal/user"
+	userpkg "github.com/umeshhk/termi-chatt/internal/user"
 )
 
 
@@ -79,7 +79,7 @@ log.Println("Inserting Messages into Database ")
 
 }
 
-func GetRoomMessages(db *sql.DB, room_id int ) (user.Messages[], error){
+func GetRoomMessages(db *sql.DB, room_id int ) ([]userpkg.MessagesStruct , error){
 
 	log.Println("Getting Room %v Messages from Database")
 
@@ -89,26 +89,24 @@ func GetRoomMessages(db *sql.DB, room_id int ) (user.Messages[], error){
 		 JOIN users u on m.user_id = u.id 
 		 WHERE m.room_id = $1 
 		 ORDER BY m.created_at ASC 
-		 LIMIT 50
-		`
-	,room_id)
+		 LIMIT 50`,room_id)
 
   if err != nil {
-		return _, err
+		return nil, err
 	}
 
-	var messages []user.Messages
+	var messages []userpkg.MessagesStruct 
 
 	defer rows.Close()
 
 	for rows.Next(){
-		var msg user.Messages
+		var msg userpkg.MessagesStruct 
 
 
 		err := rows.Scan(&msg.Username , &msg.Content, &msg.CreatedAt)
 
 		if err != nil {
-			return _,err
+			return nil,err
 		}
 
 
