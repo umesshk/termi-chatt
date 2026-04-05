@@ -24,3 +24,9 @@ type ServerResponse struct {
 	Message     string  `json:"message"`
 	RoomId			int 		`json:"roomId"`
 }
+
+type MessagesStruct struct {
+	Username	 string  `json:"username"`  
+	Message 	 string  `json:"message"`
+	CreatedAt  string   `json:"created_at"`	
+}

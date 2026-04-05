@@ -78,5 +78,23 @@ log.Println("Inserting Messages into Database ")
 
 }
 
+func GetRoomMessages(db *sql.DB, room_id int ) (){
+
+	log.Println("Getting Room %v Messages from Database")
+
+	row, err := db.Query(
+		`SELECT u.username , m.content, m.created_at 
+		 FROM messages m 
+		 JOIN users u on m.user_id = u.id 
+		 WHERE m.room_id = $1 
+		 ORDER BY m.created_at ASC 
+		 LIMIT 50
+		`
+	,room_id)
+	
+
+
+}
+
 
 
