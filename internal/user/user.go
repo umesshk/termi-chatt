@@ -26,7 +26,7 @@ type ServerResponse struct {
 }
 
 type MessagesStruct struct {
-	Username	 string  `json:"username"`  
-	Message 	 string  `json:"message"`
-	CreatedAt  string   `json:"created_at"`	
+	Username	 string   
+	Content 	 string  
+	CreatedAt  string   
 }

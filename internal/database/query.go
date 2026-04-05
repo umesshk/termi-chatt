@@ -4,6 +4,7 @@ import (
 	"log"
 	"database/sql"
 	"fmt"
+	"github.com/umesshk/termi-chatt/internal/user"
 )
 
 
@@ -78,11 +79,11 @@ log.Println("Inserting Messages into Database ")
 
 }
 
-func GetRoomMessages(db *sql.DB, room_id int ) (){
+func GetRoomMessages(db *sql.DB, room_id int ) (user.Messages[], error){
 
 	log.Println("Getting Room %v Messages from Database")
 
-	row, err := db.Query(
+	rows, err := db.Query(
 		`SELECT u.username , m.content, m.created_at 
 		 FROM messages m 
 		 JOIN users u on m.user_id = u.id 
@@ -91,8 +92,32 @@ func GetRoomMessages(db *sql.DB, room_id int ) (){
 		 LIMIT 50
 		`
 	,room_id)
-	
 
+  if err != nil {
+		return _, err
+	}
+
+	var messages []user.Messages
+
+	defer rows.Close()
+
+	for rows.Next(){
+		var msg user.Messages
+
+
+		err := rows.Scan(&msg.Username , &msg.Content, &msg.CreatedAt)
+
+		if err != nil {
+			return _,err
+		}
+
+
+		messages = append(messages,msg)
+		
+
+
+	}
+   return messages, nil
 
 }
 
