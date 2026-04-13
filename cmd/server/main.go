@@ -5,9 +5,9 @@ import (
 	"log"
 	"encoding/json"
 	"net/http"
-	"github.com/umeshhk/termi-chatt/internal/service/ws"
-	"github.com/umeshhk/termi-chatt/internal/user"
-	"github.com/umeshhk/termi-chatt/internal/database"
+	"github.com/umesshk/termi-chatt/internal/service/ws"
+	"github.com/umesshk/termi-chatt/internal/user"
+	"github.com/umesshk/termi-chatt/internal/database"
 	"database/sql"
 )
 

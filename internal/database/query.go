@@ -4,7 +4,7 @@ import (
 	"log"
 	"database/sql"
 	"fmt"
-	userpkg "github.com/umeshhk/termi-chatt/internal/user"
+	userpkg "github.com/umesshk/termi-chatt/internal/user"
 )
 
 
@@ -115,9 +115,11 @@ func GetRoomMessages(db *sql.DB, room_id int ) ([]userpkg.MessagesStruct , error
 
 
 	}
+	fmt.Println(messages)
    return messages, nil
 
 }
+
 
 
 

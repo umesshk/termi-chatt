@@ -69,7 +69,7 @@ The client:
 Clone the repository:
 
 ```bash
-git clone https://github.com/umeshhk/termi-chatt
+git clone https://github.com/umesshk/termi-chatt
 cd termi-chatt
 ```
 

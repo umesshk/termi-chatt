@@ -1,4 +1,4 @@
-module github.com/umeshhk/termi-chatt
+module github.com/umesshk/termi-chatt
 
 go 1.24.0
 

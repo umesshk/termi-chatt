@@ -9,7 +9,7 @@ import (
 	"strings"
 	"encoding/json"
 	"math/rand/v2"
-	"github.com/umeshhk/termi-chatt/internal/user"
+	"github.com/umesshk/termi-chatt/internal/user"
 )
 
 

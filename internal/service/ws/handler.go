@@ -6,8 +6,9 @@ import (
 	"fmt"
 	"sync"
 	"database/sql"
-	"github.com/umeshhk/termi-chatt/internal/database"
-	userType  "github.com/umeshhk/termi-chatt/internal/user"
+	"github.com/umesshk/termi-chatt/internal/database"
+	"github.com/umesshk/termi-chatt/internal/user"
+	userType  "github.com/umesshk/termi-chatt/internal/user"
 )
 
 var mu sync.Mutex
