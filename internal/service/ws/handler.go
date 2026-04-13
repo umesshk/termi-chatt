@@ -7,7 +7,6 @@ import (
 	"sync"
 	"database/sql"
 	"github.com/umesshk/termi-chatt/internal/database"
-	"github.com/umesshk/termi-chatt/internal/user"
 	userType  "github.com/umesshk/termi-chatt/internal/user"
 )
 
@@ -95,6 +94,7 @@ func HandleJoin(ClientMessage userType.UserMessage, conn *websocket.Conn,db *sql
 						
 					conn.WriteJSON(server_response)
 					fmt.Println(message)
+					return 
 
 					}else {
 							mu.Lock()
@@ -123,8 +123,19 @@ func HandleJoin(ClientMessage userType.UserMessage, conn *websocket.Conn,db *sql
 						mu.Unlock()
 					
 						database.UserJoinRoom(db,userId,room_id) 	
+						
+						var room_messages []userType.MessagesStruct
 
 						message := fmt.Sprintf("%v  Joined the room ", user_name)
+						
+						room_messages , err := database.GetRoomMessages(db,room_id) 
+						
+						if err != nil {
+							fmt.Println("Error Retreiving Messages : ", err)
+							return 
+						} 
+
+						fmt.Println("Room Messages ", room_messages)
 					
 						server_response := userType.ServerResponse{Type:"room_joined",UserName:user_name,Message:message,RoomId: room_id}
 
@@ -137,6 +148,17 @@ func HandleJoin(ClientMessage userType.UserMessage, conn *websocket.Conn,db *sql
 
 				 			log.Println(message)
 						}
+					  log.Println("Writting room messages to user ")	
+						for _, msg := range room_messages {
+							
+								room_username := msg.Username
+								message_content := msg.Content 
+								server_response := userType.ServerResponse{Type:"chat_message",UserName:room_username,Message:message_content,RoomId: room_id}
+							
+								conn.WriteJSON(server_response)
+						}
+
+					  log.Println(" room messages written to  user ")	
 				}
 			}
 }
