@@ -189,7 +189,9 @@ for {
 					case "error" : 
 
 							fmt.Printf("\r\033[K%s\n",msg.Message)
-
+							close(done)
+							conn.Close()
+						  return
 					
 					case "chat_message": 	
 					fmt.Printf("\r\033[K%s%s\033[0m : %s\n",color,msg.UserName,msg.Message)
