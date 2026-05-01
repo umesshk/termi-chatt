@@ -306,7 +306,7 @@ func getRoomMessagesCached(db *sql.DB, hub *Hub, roomID int) ([]userType.Message
 	vals, err := hub.redis.Rdb.LRange(ctx, key, 0, 49).Result()
 	if err == nil && len(vals) > 0 {
 		out := make([]userType.MessagesStruct, 0, len(vals))
-		for i := len(vals) - 1; i >= 0; i-- { // stored newest-first; return oldest-first
+		for i := len(vals) - 1; i >= 0; i-- { 	
 			var cm cachedMsg
 			if json.Unmarshal([]byte(vals[i]), &cm) == nil {
 				out = append(out, userType.MessagesStruct{
@@ -319,14 +319,13 @@ func getRoomMessagesCached(db *sql.DB, hub *Hub, roomID int) ([]userType.Message
 		return out, nil
 	}
 
-	// Cache miss → go to DB, then seed Redis.
 	msgs, err := database.GetRoomMessages(db, roomID)
 	if err != nil {
 		return nil, err
 	}
 
 	pipe := hub.redis.Rdb.Pipeline()
-	for i := len(msgs) - 1; i >= 0; i-- { // newest-first in list
+	for i := len(msgs) - 1; i >= 0; i-- { 		
 		b, _ := json.Marshal(cachedMsg{Username: msgs[i].Username, Content: msgs[i].Content, CreatedAt: msgs[i].CreatedAt})
 		pipe.LPush(ctx, key, string(b))
 	}

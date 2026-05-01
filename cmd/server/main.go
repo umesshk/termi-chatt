@@ -17,8 +17,6 @@ var upgrader = websocket.Upgrader{
 	ReadBufferSize:  1024,
 	WriteBufferSize: 1024,
 	CheckOrigin: func(r *http.Request) bool {
-		// Terminal client connects locally; permissive origin avoids surprising failures.
-		// Tighten this if you expose the server publicly.
 		return true
 	},
 }

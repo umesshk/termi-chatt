@@ -20,11 +20,9 @@ func FromEnv() Config {
 		port = "8080"
 	}
 
-	// Prefer a full DSN so users can run Postgres however they want.
 	dsn := os.Getenv("POSTGRES_DSN")
 	if dsn == "" {
-		// Back-compat with the repo defaults (but no longer hardcode credentials in code).
-		dsn = "host=localhost port=5432 user=postgres password=mypass dbname=termichatt sslmode=disable"
+		dsn = "host=localhost port=5432 user=postgres password=mypass dbname=termichatt-redis sslmode=disable"
 	}
 
 	return Config{

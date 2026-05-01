@@ -22,7 +22,6 @@ type Hub struct {
 
 	redis *redisx.Client
 
-	// roomId -> pubsub
 	subs map[int]*redis.PubSub
 }
 
@@ -36,7 +35,7 @@ func NewHub(r *redisx.Client) *Hub {
 }
 
 func (h *Hub) RoomExists(ctx context.Context, roomID int) (bool, error) {
-	// Without Redis, we can only validate rooms that exist in-memory.
+
 	if h.redis == nil {
 		h.mu.RLock()
 		_, ok := h.roomMap[roomID]
@@ -101,7 +100,6 @@ func (h *Hub) JoinedRoomID(conn *websocket.Conn) (int, bool) {
 func (h *Hub) RoomUsers(roomID int) []userType.User {
 	h.mu.RLock()
 	users := h.roomMap[roomID]
-	// Copy to avoid holding lock while writing.
 	out := make([]userType.User, len(users))
 	copy(out, users)
 	h.mu.RUnlock()
@@ -130,7 +128,6 @@ func (h *Hub) EnsureRoomSub(roomID int) {
 				log.Println("redis pubsub unmarshal:", err)
 				continue
 			}
-			// Broadcast to local connections in that room.
 			for _, u := range h.RoomUsers(roomID) {
 				_ = u.User_conn.WriteJSON(resp)
 			}
@@ -139,7 +136,6 @@ func (h *Hub) EnsureRoomSub(roomID int) {
 }
 
 func (h *Hub) Publish(roomID int, resp userType.ServerResponse) {
-	// Always broadcast locally.
 	for _, u := range h.RoomUsers(roomID) {
 		_ = u.User_conn.WriteJSON(resp)
 	}
@@ -156,7 +152,6 @@ func (h *Hub) Publish(roomID int, resp userType.ServerResponse) {
 		return
 	}
 	if err := h.redis.Rdb.Publish(context.Background(), channel, string(b)).Err(); err != nil {
-		// Non-fatal; local broadcast already happened.
 		log.Println("redis publish:", err)
 	}
 }
