@@ -95,6 +95,22 @@ or
 go run cmd/server/main.go
 ```
 
+#### Environment variables
+
+- **`PORT`**: server port (default: `8080`)
+- **`POSTGRES_DSN`**: Postgres connection string (default: `host=localhost port=5432 user=postgres password=mypass dbname=termichatt sslmode=disable`)
+- **`REDIS_ADDR`**: Redis address (optional). If unset, Redis features are disabled.
+- **`REDIS_PASSWORD`**: Redis password (optional)
+- **`REDIS_DB`**: Redis DB number (optional, default `0`)
+
+Example:
+
+```bash
+export POSTGRES_DSN="host=localhost port=5432 user=postgres password=mypass dbname=termichatt sslmode=disable"
+export REDIS_ADDR="localhost:6379"
+go run cmd/server/main.go
+```
+
 ---
 
 ### Start the Client

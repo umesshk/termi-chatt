@@ -81,7 +81,7 @@ log.Println("Inserting Messages into Database ")
 
 func GetRoomMessages(db *sql.DB, room_id int ) ([]userpkg.MessagesStruct , error){
 
-	log.Println("Getting Room %v Messages from Database")
+	log.Printf("Getting Room %v Messages from Database", room_id)
 
 	rows, err := db.Query(
 		`SELECT u.username , m.content, m.created_at 
@@ -95,7 +95,7 @@ func GetRoomMessages(db *sql.DB, room_id int ) ([]userpkg.MessagesStruct , error
 		return nil, err
 	}
 
-	var messages []userpkg.MessagesStruct 
+	var messages []userpkg.MessagesStruct
 
 	defer rows.Close()
 
@@ -115,8 +115,7 @@ func GetRoomMessages(db *sql.DB, room_id int ) ([]userpkg.MessagesStruct , error
 
 
 	}
-	fmt.Println(messages)
-   return messages, nil
+	return messages, nil
 
 }
 

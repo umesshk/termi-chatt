@@ -3,6 +3,7 @@ package user
 
 import (
 	"github.com/gorilla/websocket"
+	"time"
 )
 
 type UserMessage struct {
@@ -28,5 +29,5 @@ type ServerResponse struct {
 type MessagesStruct struct {
 	Username	 string   
 	Content 	 string  
-	CreatedAt  string   
+	CreatedAt  time.Time
 }

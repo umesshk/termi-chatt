@@ -1,26 +1,20 @@
-package ws 
+package ws
 
 import (
 	"github.com/gorilla/websocket"
 	"log"
 	"fmt"
-	"sync"
 	"database/sql"
 	"github.com/umesshk/termi-chatt/internal/database"
 	userType  "github.com/umesshk/termi-chatt/internal/user"
+	"context"
+	"encoding/json"
+	"time"
 )
 
-var mu sync.Mutex
 
 
-//  roomid -> websocket connection slice
-var room_map = make(map[int][]userType.User)
-// websocket connection -> room id 
-var conn_map = make(map[*websocket.Conn]int)
-
-
-
-func HandleCreate(ClientMessage userType.UserMessage , conn *websocket.Conn,db *sql.DB ){
+func HandleCreate(ClientMessage userType.UserMessage , conn *websocket.Conn,db *sql.DB, hub *Hub ){
 			
 				
 				user_name := ClientMessage.Username
@@ -41,38 +35,34 @@ func HandleCreate(ClientMessage userType.UserMessage , conn *websocket.Conn,db *
 
 				log.Println("Room created with id ", roomId)
 				
+				ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+				_ = hub.MarkRoomExists(ctx, roomId)
+				cancel()
 
-				
-
-				user := userType.User{userId,user_name,conn}
-				
-				mu.Lock()
-				room_map[roomId] = append(room_map[roomId], user)	
-
-	    	conn_map[conn] = roomId	
-
-				mu.Unlock()
+				user := userType.User{UserId: userId, Username: user_name, User_conn: conn}
+				hub.AddConn(roomId, user)
+				hub.EnsureRoomSub(roomId)
 
 
 				message := fmt.Sprintf(" Created Room with Room Id :  %v",roomId)
 
 				server_response := userType.ServerResponse{Type:"room_created", UserName:user_name, Message: message, RoomId: roomId}
 			
-				conn.WriteJSON(server_response)
+				_ = conn.WriteJSON(server_response)
 
 				log.Printf("%v  Created room %v\n" ,  user_name, roomId)
 	
 }
 
 
-func HandleJoin(ClientMessage userType.UserMessage, conn *websocket.Conn,db *sql.DB ){
+func HandleJoin(ClientMessage userType.UserMessage, conn *websocket.Conn,db *sql.DB, hub *Hub ){
 	
 				room_id   := ClientMessage.RoomId
 				user_name := ClientMessage.Username
    			 
 				userId,err :=  database.GetORInsertUser(db,user_name)
 				
-				user := userType.User{userId, user_name, conn}
+				user := userType.User{UserId: userId, Username: user_name, User_conn: conn}
 				
 
 				 if err != nil {
@@ -82,9 +72,13 @@ func HandleJoin(ClientMessage userType.UserMessage, conn *websocket.Conn,db *sql
 
 				log.Println("Client Room Id ", room_id)
 				
-				mu.Lock()
-				_, ok := room_map[room_id]	
-				mu.Unlock()
+				ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+				ok, existsErr := hub.RoomExists(ctx, room_id)
+				cancel()
+				if existsErr != nil {
+					log.Println("room existence check:", existsErr)
+					ok = false
+				}
 
 				
 				if !ok {
@@ -92,14 +86,12 @@ func HandleJoin(ClientMessage userType.UserMessage, conn *websocket.Conn,db *sql
 					message := fmt.Sprintf("Room Doesn't Exist with room Id : %v", room_id)	
 					server_response := userType.ServerResponse{Type:"error",UserName:user_name,Message:message,RoomId: room_id}
 						
-					conn.WriteJSON(server_response)
+					_ = conn.WriteJSON(server_response)
 					fmt.Println(message)
 					return 
 
 					}else {
-							mu.Lock()
-					   	conn_room_id , ok := conn_map[conn]
-							mu.Unlock()
+							conn_room_id , ok := hub.JoinedRoomID(conn)
 
 							if ok && conn_room_id == room_id {
 
@@ -107,20 +99,15 @@ func HandleJoin(ClientMessage userType.UserMessage, conn *websocket.Conn,db *sql
 						
 									server_response := userType.ServerResponse{Type:"error",UserName:user_name,Message:message,RoomId: room_id}
 					
-									conn.WriteJSON(server_response)
+									_ = conn.WriteJSON(server_response)
 									fmt.Println(message)
 
 						}else {
 
-						mu.Lock()
-						room_map[room_id] = append(room_map[room_id], user)
-	    			conn_map[conn] = room_id
-						mu.Unlock()
+						hub.AddConn(room_id, user)
+						hub.EnsureRoomSub(room_id)
 			
-
-						mu.Lock()
-						room_conn := room_map[room_id]
-						mu.Unlock()
+						room_conn := hub.RoomUsers(room_id)
 					
 						database.UserJoinRoom(db,userId,room_id) 	
 						
@@ -128,7 +115,7 @@ func HandleJoin(ClientMessage userType.UserMessage, conn *websocket.Conn,db *sql
 
 						message := fmt.Sprintf("%v  Joined the room ", user_name)
 						
-						room_messages , err := database.GetRoomMessages(db,room_id) 
+						room_messages, err = getRoomMessagesCached(db, hub, room_id)
 						
 						if err != nil {
 							fmt.Println("Error Retreiving Messages : ", err)
@@ -143,7 +130,7 @@ func HandleJoin(ClientMessage userType.UserMessage, conn *websocket.Conn,db *sql
 						 		 
 								receiver_conn := receiver.User_conn
 					 		
-								receiver_conn.WriteJSON(server_response)
+								_ = receiver_conn.WriteJSON(server_response)
 
 
 				 			log.Println(message)
@@ -155,7 +142,7 @@ func HandleJoin(ClientMessage userType.UserMessage, conn *websocket.Conn,db *sql
 								message_content := msg.Content 
 								server_response := userType.ServerResponse{Type:"chat_message",UserName:room_username,Message:message_content,RoomId: room_id}
 							
-								conn.WriteJSON(server_response)
+								_ = conn.WriteJSON(server_response)
 						}
 
 					  log.Println(" room messages written to  user ")	
@@ -163,7 +150,7 @@ func HandleJoin(ClientMessage userType.UserMessage, conn *websocket.Conn,db *sql
 			}
 }
 
-func HandleMessage( ClientMessage userType.UserMessage, conn *websocket.Conn,db *sql.DB ){
+func HandleMessage( ClientMessage userType.UserMessage, conn *websocket.Conn,db *sql.DB, hub *Hub ){
  
 				room_id := ClientMessage.RoomId
 			  sender_name := ClientMessage.Username	
@@ -182,7 +169,7 @@ func HandleMessage( ClientMessage userType.UserMessage, conn *websocket.Conn,db 
 							
 						server_response := userType.ServerResponse{Type:"error",UserName:sender_name,Message:message,RoomId: room_id}
 						
-						conn.WriteJSON(server_response)
+						_ = conn.WriteJSON(server_response)
 					  
 						log.Println(message)
 
@@ -192,9 +179,7 @@ func HandleMessage( ClientMessage userType.UserMessage, conn *websocket.Conn,db 
 
 				
 
-				mu.Lock()
-				joined_room_id , ok := conn_map[conn]
-				mu.Unlock()
+				joined_room_id , ok := hub.JoinedRoomID(conn)
 
 				if !ok {
 					
@@ -202,7 +187,7 @@ func HandleMessage( ClientMessage userType.UserMessage, conn *websocket.Conn,db 
 							
 						server_response := userType.ServerResponse{Type:"error",UserName:sender_name,Message:message,RoomId: room_id}
 						
-						conn.WriteJSON(server_response)
+						_ = conn.WriteJSON(server_response)
 					  
 						log.Println(message)
 
@@ -215,46 +200,29 @@ func HandleMessage( ClientMessage userType.UserMessage, conn *websocket.Conn,db 
 							
 					server_response := userType.ServerResponse{Type:"error",UserName:sender_name,Message:message,RoomId: room_id}
 						
-						conn.WriteJSON(server_response)
+						_ = conn.WriteJSON(server_response)
 					  
 						log.Println(message)
 
 					return	
 			}
 
-				mu.Lock()
- 				 current_room := room_map[joined_room_id]
-				 mu.Unlock()
 			 	 sender_message := ClientMessage.Message
 
 				 log.Printf("Sender Message %v\n", sender_message)
 					
 				 database.InsertMessage(db,sender_id,joined_room_id,sender_message)
+				 cacheAppendRoomMessage(hub, joined_room_id, sender_name, sender_message)
 									
-					fmt.Println("Writing Message to all user ")
-			
-					for _,receiver:= range current_room {
-
-					 receiver_name := receiver.Username
-					 receiver_conn := receiver.User_conn
-					 
-				 	 message_to_send := fmt.Sprintf("%v",sender_message)
-					
-					 server_response := userType.ServerResponse{Type:"chat_message", UserName:sender_name,Message:message_to_send,RoomId:room_id }
-						
-					 receiver_conn.WriteJSON(server_response)
-					 
-				 log.Printf("Message Written to User :  %v \n",receiver_name)
-				 
-
-
-				 }
+				 message_to_send := fmt.Sprintf("%v",sender_message)
+				 server_response := userType.ServerResponse{Type:"chat_message", UserName:sender_name,Message:message_to_send,RoomId:room_id }
+				 hub.Publish(joined_room_id, server_response)
 
 			}
 
 }
 
-func HandleLeave( ClientMessage userType.UserMessage, conn *websocket.Conn ,db *sql.DB){
+func HandleLeave( ClientMessage userType.UserMessage, conn *websocket.Conn ,db *sql.DB, hub *Hub){
 				
 				room_id := ClientMessage.RoomId
 			  sender_name := ClientMessage.Username	
@@ -265,7 +233,7 @@ func HandleLeave( ClientMessage userType.UserMessage, conn *websocket.Conn ,db *
 							
 						server_response := userType.ServerResponse{Type:"error",UserName:sender_name,Message:message,RoomId: room_id}
 						
-						conn.WriteJSON(server_response)
+						_ = conn.WriteJSON(server_response)
 					  
 						log.Println(message)
 
@@ -274,9 +242,7 @@ func HandleLeave( ClientMessage userType.UserMessage, conn *websocket.Conn ,db *
 				}
 
 				
-				mu.Lock()
-				joined_room_id , ok := conn_map[conn]
-				mu.Unlock()
+				joined_room_id , ok := hub.JoinedRoomID(conn)
 
 				if !ok {
 					
@@ -284,7 +250,7 @@ func HandleLeave( ClientMessage userType.UserMessage, conn *websocket.Conn ,db *
 							
 						server_response := userType.ServerResponse{Type:"error",UserName:sender_name,Message:message,RoomId: room_id}
 						
-						conn.WriteJSON(server_response)
+						_ = conn.WriteJSON(server_response)
 					  
 						log.Println(message)
 
@@ -297,43 +263,22 @@ func HandleLeave( ClientMessage userType.UserMessage, conn *websocket.Conn ,db *
 							
 					server_response := userType.ServerResponse{Type:"error",UserName:sender_name,Message:message,RoomId: room_id}
 						
-						conn.WriteJSON(server_response)
+						_ = conn.WriteJSON(server_response)
 					  
 						log.Println(message)
 
 					return	
 			}else {
-				mu.Lock()
-				users := room_map[joined_room_id]
-				mu.Unlock()
-				
-				idx_to_delete := -1  
-				for i, user := range users {
-					if user.User_conn == conn {
-						idx_to_delete = i
-						break;
-					}
-				}
-			
-				if idx_to_delete != -1 {
-					users = append(users[:idx_to_delete], users[idx_to_delete+1:]...)
-				} 
-
-				mu.Lock()
-				room_map[joined_room_id] = users
-				mu.Unlock()
+				hub.RemoveConn(conn)
+				users := hub.RoomUsers(joined_room_id)
        
 				message := fmt.Sprintf("User %v left room %v",sender_name,joined_room_id)
 
 				server_response := userType.ServerResponse{Type:"leave",UserName:sender_name,Message:message,RoomId: room_id}
 
 				for _,user := range users {
-					user.User_conn.WriteJSON(server_response)
+					_ = user.User_conn.WriteJSON(server_response)
 				}
-
-				mu.Lock()
-				delete(conn_map,conn)
-				mu.Unlock()
 
 				log.Printf("User %v left room %v",sender_name,joined_room_id)
 
@@ -341,4 +286,71 @@ func HandleLeave( ClientMessage userType.UserMessage, conn *websocket.Conn ,db *
 			}
 
 		}
+}
+
+type cachedMsg struct {
+	Username  string    `json:"username"`
+	Content   string    `json:"content"`
+	CreatedAt time.Time `json:"createdAt"`
+}
+
+func getRoomMessagesCached(db *sql.DB, hub *Hub, roomID int) ([]userType.MessagesStruct, error) {
+	if hub.redis == nil {
+		return database.GetRoomMessages(db, roomID)
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+
+	key := fmt.Sprintf("room:%d:messages", roomID)
+	vals, err := hub.redis.Rdb.LRange(ctx, key, 0, 49).Result()
+	if err == nil && len(vals) > 0 {
+		out := make([]userType.MessagesStruct, 0, len(vals))
+		for i := len(vals) - 1; i >= 0; i-- { // stored newest-first; return oldest-first
+			var cm cachedMsg
+			if json.Unmarshal([]byte(vals[i]), &cm) == nil {
+				out = append(out, userType.MessagesStruct{
+					Username:  cm.Username,
+					Content:   cm.Content,
+					CreatedAt: cm.CreatedAt,
+				})
+			}
+		}
+		return out, nil
+	}
+
+	// Cache miss → go to DB, then seed Redis.
+	msgs, err := database.GetRoomMessages(db, roomID)
+	if err != nil {
+		return nil, err
+	}
+
+	pipe := hub.redis.Rdb.Pipeline()
+	for i := len(msgs) - 1; i >= 0; i-- { // newest-first in list
+		b, _ := json.Marshal(cachedMsg{Username: msgs[i].Username, Content: msgs[i].Content, CreatedAt: msgs[i].CreatedAt})
+		pipe.LPush(ctx, key, string(b))
+	}
+	pipe.LTrim(ctx, key, 0, 49)
+	pipe.Expire(ctx, key, 10*time.Minute)
+	_, _ = pipe.Exec(ctx)
+
+	return msgs, nil
+}
+
+func cacheAppendRoomMessage(hub *Hub, roomID int, username, content string) {
+	if hub.redis == nil {
+		return
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+	key := fmt.Sprintf("room:%d:messages", roomID)
+	b, err := json.Marshal(cachedMsg{Username: username, Content: content, CreatedAt: time.Now()})
+	if err != nil {
+		return
+	}
+	pipe := hub.redis.Rdb.Pipeline()
+	pipe.LPush(ctx, key, string(b))
+	pipe.LTrim(ctx, key, 0, 49)
+	pipe.Expire(ctx, key, 10*time.Minute)
+	_, _ = pipe.Exec(ctx)
 }
