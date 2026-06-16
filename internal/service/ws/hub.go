@@ -8,17 +8,22 @@ import (
 	"sync"
 	"time"
 
-	"github.com/gorilla/websocket"
-	userType "github.com/umesshk/termi-chatt/internal/user"
-	"github.com/umesshk/termi-chatt/internal/redisx"
 	redis "github.com/redis/go-redis/v9"
+	"github.com/umesshk/termi-chatt/internal/redisx"
+	userType "github.com/umesshk/termi-chatt/internal/user"
 )
+
+type roomMember struct {
+	userID   int
+	username string
+	client   *Client
+}
 
 type Hub struct {
 	mu sync.RWMutex
 
-	roomMap map[int][]userType.User
-	connMap map[*websocket.Conn]int
+	roomMap map[int][]roomMember
+	connMap map[*Client]int
 
 	redis *redisx.Client
 
@@ -27,15 +32,14 @@ type Hub struct {
 
 func NewHub(r *redisx.Client) *Hub {
 	return &Hub{
-		roomMap: make(map[int][]userType.User),
-		connMap: make(map[*websocket.Conn]int),
+		roomMap: make(map[int][]roomMember),
+		connMap: make(map[*Client]int),
 		redis:   r,
 		subs:    make(map[int]*redis.PubSub),
 	}
 }
 
 func (h *Hub) RoomExists(ctx context.Context, roomID int) (bool, error) {
-
 	if h.redis == nil {
 		h.mu.RLock()
 		_, ok := h.roomMap[roomID]
@@ -59,51 +63,80 @@ func (h *Hub) MarkRoomExists(ctx context.Context, roomID int) error {
 	return h.redis.Rdb.Set(ctx, key, "1", 7*24*time.Hour).Err()
 }
 
-func (h *Hub) AddConn(roomID int, u userType.User) {
+func (h *Hub) AddClient(roomID int, userID int, username string, client *Client) {
 	h.mu.Lock()
-	h.roomMap[roomID] = append(h.roomMap[roomID], u)
-	h.connMap[u.User_conn] = roomID
+	h.roomMap[roomID] = append(h.roomMap[roomID], roomMember{
+		userID:   userID,
+		username: username,
+		client:   client,
+	})
+	h.connMap[client] = roomID
 	h.mu.Unlock()
 }
 
-func (h *Hub) RemoveConn(conn *websocket.Conn) {
+func (h *Hub) RemoveClient(client *Client) {
 	h.mu.Lock()
-	roomID, ok := h.connMap[conn]
+	roomID, ok := h.connMap[client]
 	if !ok {
 		h.mu.Unlock()
 		return
 	}
 
-	users := h.roomMap[roomID]
+	members := h.roomMap[roomID]
 	idx := -1
-	for i, user := range users {
-		if user.User_conn == conn {
+	for i, m := range members {
+		if m.client == client {
 			idx = i
 			break
 		}
 	}
 	if idx != -1 {
-		users = append(users[:idx], users[idx+1:]...)
+		members = append(members[:idx], members[idx+1:]...)
 	}
-	h.roomMap[roomID] = users
-	delete(h.connMap, conn)
+	h.roomMap[roomID] = members
+	delete(h.connMap, client)
 	h.mu.Unlock()
+
+	close(client.Send)
 }
 
-func (h *Hub) JoinedRoomID(conn *websocket.Conn) (int, bool) {
+func (h *Hub) JoinedRoomID(client *Client) (int, bool) {
 	h.mu.RLock()
-	roomID, ok := h.connMap[conn]
+	roomID, ok := h.connMap[client]
 	h.mu.RUnlock()
 	return roomID, ok
 }
 
 func (h *Hub) RoomUsers(roomID int) []userType.User {
 	h.mu.RLock()
-	users := h.roomMap[roomID]
-	out := make([]userType.User, len(users))
-	copy(out, users)
+	members := h.roomMap[roomID]
+	out := make([]userType.User, len(members))
+	for i, m := range members {
+		out[i] = userType.User{UserId: m.userID, Username: m.username}
+	}
 	h.mu.RUnlock()
 	return out
+}
+
+func (h *Hub) roomClients(roomID int) []*Client {
+	h.mu.RLock()
+	members := h.roomMap[roomID]
+	out := make([]*Client, len(members))
+	for i, m := range members {
+		out[i] = m.client
+	}
+	h.mu.RUnlock()
+	return out
+}
+
+func (h *Hub) BroadcastToRoom(roomID int, resp userType.ServerResponse) {
+	for _, client := range h.roomClients(roomID) {
+		client.Enqueue(resp)
+	}
+}
+
+func (h *Hub) broadcastToRoom(roomID int, resp userType.ServerResponse) {
+	h.BroadcastToRoom(roomID, resp)
 }
 
 func (h *Hub) EnsureRoomSub(roomID int) {
@@ -128,31 +161,25 @@ func (h *Hub) EnsureRoomSub(roomID int) {
 				log.Println("redis pubsub unmarshal:", err)
 				continue
 			}
-			for _, u := range h.RoomUsers(roomID) {
-				_ = u.User_conn.WriteJSON(resp)
-			}
+			h.broadcastToRoom(roomID, resp)
 		}
 	}()
 }
 
 func (h *Hub) Publish(roomID int, resp userType.ServerResponse) {
-	for _, u := range h.RoomUsers(roomID) {
-		_ = u.User_conn.WriteJSON(resp)
-	}
+	if h.redis != nil {
+		h.EnsureRoomSub(roomID)
 
-	if h.redis == nil {
+		channel := fmt.Sprintf("room:%d:pubsub", roomID)
+		b, err := json.Marshal(resp)
+		if err != nil {
+			return
+		}
+		if err := h.redis.Rdb.Publish(context.Background(), channel, string(b)).Err(); err != nil {
+			log.Println("redis publish:", err)
+		}
 		return
 	}
 
-	h.EnsureRoomSub(roomID)
-
-	channel := fmt.Sprintf("room:%d:pubsub", roomID)
-	b, err := json.Marshal(resp)
-	if err != nil {
-		return
-	}
-	if err := h.redis.Rdb.Publish(context.Background(), channel, string(b)).Err(); err != nil {
-		log.Println("redis publish:", err)
-	}
+	h.broadcastToRoom(roomID, resp)
 }
-
