@@ -21,9 +21,6 @@ func FromEnv() Config {
 	}
 
 	dsn := os.Getenv("POSTGRES_DSN")
-	if dsn == "" {
-		dsn = "host=localhost port=5432 user=postgres password=mypass dbname=termichatt-redis sslmode=disable"
-	}
 
 	return Config{
 		Port:          port,
@@ -33,4 +30,3 @@ func FromEnv() Config {
 		RedisDB:       os.Getenv("REDIS_DB"),
 	}
 }
-
